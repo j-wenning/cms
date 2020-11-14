@@ -46,6 +46,7 @@ if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
 
 // Tools like Cloud9 rely on this.
 const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 3000;
+const DEV_PORT = parseInt(process.env.DEV_PORT, 10) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 if (process.env.HOST) {
@@ -72,7 +73,12 @@ checkBrowsers(paths.appPath, isInteractive)
   .then(() => {
     // We attempt to use the default port but if it is busy, we offer the user to
     // run on a different port. `choosePort()` Promise resolves to the next free port.
-    return choosePort(HOST, DEFAULT_PORT);
+    return choosePort(
+      HOST,
+      process.env.NODE_ENV === 'production'
+        ? DEFAULT_PORT
+        : DEV_PORT
+    );
   })
   .then(port => {
     if (port == null) {
@@ -110,7 +116,8 @@ checkBrowsers(paths.appPath, isInteractive)
       webpack,
     });
     // Load proxy config
-    const proxySetting = require(paths.appPackageJson).proxy;
+    const proxySetting = require(paths.appPackageJson).proxy + ':' + process.env.PORT;
+
     const proxyConfig = prepareProxy(
       proxySetting,
       paths.appPublic,
@@ -164,3 +171,21 @@ checkBrowsers(paths.appPath, isInteractive)
     }
     process.exit(1);
   });
+
+const nodemon = require('nodemon');
+const path = require('path')
+
+nodemon({
+  script: path.resolve(__dirname, '..', 'server', 'index.js'),
+  ext: 'js json',
+  legacyWatch: true
+});
+
+nodemon.on('start', function () {
+  console.log('App has started');
+}).on('quit', function () {
+  console.log('App has quit');
+  process.exit();
+}).on('restart', function (files) {
+  console.log('App restarted due to: ', files);
+});
