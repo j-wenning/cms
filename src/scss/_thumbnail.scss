@@ -1,0 +1,12 @@
+$img-thumbnails: 6;
+$img-thumbnail-height: 75px;
+$img-thumbnail-height-inc: 25px;
+
+@mixin img-thumbnail($breakpoint: null) {
+  @for $i from 1 through $img-thumbnails {
+    .img#{$breakpoint}-thumbnail-#{$i} {
+      object-fit: contain;
+      height: $img-thumbnail-height + ($i - 1) * $img-thumbnail-height-inc;
+    }
+  }
+}
