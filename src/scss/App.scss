@@ -1,0 +1,23 @@
+$enable-responsive-font-sizes: true;
+@import '~bootstrap/scss/bootstrap';
+@import './Featured';
+@import './Thumbnail';
+@import './Whitespace';
+@import './Opacity';
+@import './Filter';
+@import './Product';
+
+@each $breakpoint in $grid-breakpoints {
+  $raw-breakpoint: nth($breakpoint, 1);
+  $breakpoint: $raw-breakpoint;
+  @if $raw-breakpoint == 'xs' { $breakpoint: null; }
+  @else { $breakpoint: '-' + $breakpoint; }
+  @include media-breakpoint-up($raw-breakpoint) {
+    @include featured   ($breakpoint);
+    @include thumbnail  ($breakpoint);
+    @include whitespace ($breakpoint);
+    @include opacity    ($breakpoint);
+    @include filter     ($breakpoint);
+    @include product    ($breakpoint);
+  }
+}
