@@ -10,6 +10,8 @@ db.connect()
 
 app.use(express.json())
 
+app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules', 'bootstrap-icons', 'icons/')))
+
 app.use(express.static(path.resolve(__dirname, '..', 'public/')))
 
 app.get('/api/products', (req, res) => {
