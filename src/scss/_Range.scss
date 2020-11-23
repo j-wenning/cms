@@ -1,17 +1,18 @@
 @import '~bootstrap/scss/variables';
 
-$range-primary-color: $blue;
-$range-highlight-filter: contrast(calc(1 - 0.25 * var(--hl))) saturate(calc(1 + 2 * var(--hl)));
-$range-transition-timing: 0.3s;
-$range-knob-scale: 0.5;
-$range-x-padding: 2em;
-$range-bar-height: 6px;
+$range-primary-color: $blue !default;
+$range-highlight-filter: contrast(calc(1 - 0.25 * var(--hl))) saturate(calc(1 + 2 * var(--hl))) !default;
+$range-transition-timing: 0.3s !default;
+$range-knob-scale: 0.5 !default;
+$range-x-padding: 2em !default;
+$range-bar-height: 6px !default;
 
 @mixin track() {
   height: 100%;
   width: 100%;
   background: none;
 }
+
 @mixin knob() {
   box-sizing: border-box;
   width: var(--d);
@@ -34,11 +35,13 @@ $range-bar-height: 6px;
       margin: 0;
       font: inherit;
     }
+
     .multi-range-container {
       @each $dir in right, left {
         margin-#{$dir}: -0.5 * $range-x-padding;
       }
     }
+
     .multi-range {
       --w: 100%;
       --h: 1.75em;
@@ -53,6 +56,7 @@ $range-bar-height: 6px;
       width: calc(var(--w) + #{$range-x-padding});
       padding: 0 $range-x-padding * 0.5;
       transition: filter $range-transition-timing ease-out;
+
       &::before, &::after {
         grid-column: 2;
         grid-row: 2;
@@ -62,6 +66,7 @@ $range-bar-height: 6px;
         background: $secondary;
         content: '';
       }
+
       &::after {
         background: $primary;
         filter: $range-highlight-filter;
@@ -70,20 +75,25 @@ $range-bar-height: 6px;
         mask: var(--fill);
         mask-composite: exclude;
       }
+
       &:focus-within { --hl: 1; }
     }
+
     .sr-only {
       position: absolute;
       clip-path: inset(50%);
     }
+
     .multi-range > #multi-lbl {
       grid-column: 2;
       grid-row: 1;
     }
+
     .multi-range > input[type='range'] {
       &::-webkit-slider-runnable-track,
       &::-webkit-slider-thumb,
       & { -webkit-appearance: none; }
+
       grid-column: 2;
       grid-row: 2;
       z-index: calc(1 + var(--hl));
@@ -94,23 +104,30 @@ $range-bar-height: 6px;
       transition: filter $range-transition-timing ease-out;
       cursor: grab;
       pointer-events: none;
+
       &::-webkit-slider-runnable-track { @include track(); }
+
       &::-moz-range-track { @include track(); }
+
       &::-webkit-slider-thumb { @include knob(); }
+
       &::-moz-range-thumb { @include knob(); }
+
       &:focus {
         outline: solid 0 transparent;
         &, & + output { --hl: 1 };
       }
+
       &:active { cursor: grabbing; }
     }
+
     .multi-range > output {
       grid-column: 2;
       grid-row: 3;
       margin-left: var(--r);
       width: 100%;
-      // transform: translate(calc((var(--c) - var(--min)) / var(--dif) * var(--uw)));
       transform: translate(calc((var(--c) - var(--min)) / var(--dif) * var(--uw)));
+
       &::after {
         max-width: max-content;
         display: block;
