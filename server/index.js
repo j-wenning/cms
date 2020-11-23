@@ -14,19 +14,42 @@ app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules
 
 app.use(express.static(path.resolve(__dirname, '..', 'public/')))
 
-app.get('/api/products', (req, res) => {
+// SELECT  ARRAY_AGG(url ORDER BY img_order, id) images
+// FROM    images AS i
+// WHERE   pid = p.id
+
+app.get('/api/products', (req, res, next) => {
   db.query(`
-    SELECT  p.*,
+    SELECT  p.id,
+            p.name,
             (
-              SELECT  ARRAY_AGG(url ORDER BY img_order, id) images
-              FROM    images AS i
-              WHERE   pid = p.id
+              SELECT  p.description
+              WHERE   $1 = FALSE
+            ),
+            p.price,
+            p.discount,
+            (
+              SELECT    url AS image_url
+              FROM      images AS i
+              WHERE     pid = p.id
+              ORDER BY  img_order, id
+              LIMIT     1
             )
     FROM    products AS p
-    WHERE   ($1 = TRUE AND featured = TRUE) OR $1 = FALSE;
-  `, [!!req.query.featured])
+    WHERE   $1 = FALSE OR ($1 = TRUE AND discount > 0);
+  `, [!!req.query.deals])
     .then(data => res.json(data.rows))
-    .catch(err => console.error(err))
+    .catch(err => next({ err }))
+})
+
+app.use((error, req, res, next) => {
+  const {
+    err: err = null,
+    code: code = 500,
+    msg: msg = 'An unexpected error has occurred.'
+  } = error
+  console.error('error:', err)
+  res.status(code).json({ code, msg })
 })
 
 app.listen(port, () => console.log(`Listening on port ${port}.`))
