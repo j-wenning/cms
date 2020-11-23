@@ -1,0 +1,37 @@
+@import '~bootstrap/scss/mixins/_grid';
+
+$product-col-count: 6 !default;
+$product-col-width: 175px !default;
+$product-col-width-inc: 25px !default;
+
+$product-description-heights: 10 !default;
+$product-description-height: 0px !default;
+$product-description-height-inc: 25px !default;
+
+$product-description-line-max: 10 !default;
+
+
+@mixin product($breakpoint: '') {
+  @for $i from 1 through $product-col-count {
+    .product-col#{$breakpoint}-#{$i} {
+      @include make-col-ready();
+      flex: 0 0 $product-col-width;
+      max-width: $product-col-width + ($i - 1) * $product-col-width-inc;
+    }
+  }
+
+  @for $i from 1 through $product-description-heights {
+    .description#{$breakpoint}-h-#{$i} {
+      height: $product-description-height + ($i - 1) * $product-description-height-inc;
+    }
+  }
+
+  @for $i from 0 through $product-description-line-max {
+    .description#{$breakpoint}-lines-#{$i} {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: $i;
+      overflow: hidden;
+    }
+  }
+}
