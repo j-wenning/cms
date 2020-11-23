@@ -46,9 +46,10 @@ $range-bar-height: 6px;
       --uw: calc(var(--w) - var(--d));
       --dif: calc(var(--max) - var(--min));
       display: grid;
-      grid-template: max-content var(--h) max-content;
+      grid-template: var(--h) / 0 var(--w) 0;
       position: relative;
       overflow: hidden;
+      width: calc(var(--w) + #{$range-x-padding});
       padding: 0 $range-x-padding * 0.5;
       transition: filter $range-transition-timing ease-out;
       &::before, &::after {
