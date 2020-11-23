@@ -1,7 +1,11 @@
 @mixin position($breakpoint: '') {
   .position#{$breakpoint}-start { top: 0; left: 0; }
+
   .position#{$breakpoint}-end { top: 0; right: 0; }
+
   .position#{$breakpoint}-center { right: 0; left: 0; }
+
   .position#{$breakpoint}-center-top { top: 0; right: 0; left: 0; }
+
   .position#{$breakpoint}-center-full { top: 0; right: 0; bottom: 0; left: 0; }
 }
