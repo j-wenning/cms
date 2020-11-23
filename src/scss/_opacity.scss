@@ -1,5 +1,5 @@
-$opacity-min-divisor: 0;
-$opacity-max-divisor: 5;
+$opacity-min-divisor: 0 !default;
+$opacity-max-divisor: 5 !default;
 
 @mixin opacity($breakpoint: '') {
   $divisor: $opacity-min-divisor;
@@ -18,9 +18,7 @@ $opacity-max-divisor: 5;
       }
       $class-name: 'opacity#{$breakpoint}-#{$quotient-str}';
       @if index($class-name-list, $class-name) == null {
-        .#{$class-name} {
-          opacity: $quotient;
-        }
+        .#{$class-name} { opacity: $quotient; }
         $class-name-list: append($class-name-list, $class-name)
       }
     }
