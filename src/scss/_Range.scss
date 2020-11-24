@@ -50,7 +50,7 @@ $range-bar-height: 6px !default;
       --uw: calc(var(--w) - var(--d));
       --dif: calc(var(--max) - var(--min));
       display: grid;
-      grid-template: max-content var(--h) max-content / 0 var(--w) 0;
+      grid-template: var(--h) max-content / 0 var(--w) 0;
       position: relative;
       overflow: hidden;
       width: calc(var(--w) + #{$range-x-padding});
@@ -59,7 +59,7 @@ $range-bar-height: 6px !default;
 
       &::before, &::after {
         grid-column: 2;
-        grid-row: 2;
+        grid-row: 1;
         align-self: center;
         height: $range-bar-height;
         border-radius: var(--r);
@@ -84,18 +84,13 @@ $range-bar-height: 6px !default;
       clip-path: inset(50%);
     }
 
-    .multi-range > #multi-lbl {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
     .multi-range > input[type='range'] {
       &::-webkit-slider-runnable-track,
       &::-webkit-slider-thumb,
       & { -webkit-appearance: none; }
 
       grid-column: 2;
-      grid-row: 2;
+      grid-row: 1;
       z-index: calc(1 + var(--hl));
       top: 0;
       left: 0;
@@ -113,17 +108,17 @@ $range-bar-height: 6px !default;
 
       &::-moz-range-thumb { @include knob(); }
 
-      &:focus {
+      &:focus,
+      &:active {
         outline: solid 0 transparent;
+        cursor: grabbing;
         &, & + output { --hl: 1 };
       }
-
-      &:active { cursor: grabbing; }
     }
 
     .multi-range > output {
       grid-column: 2;
-      grid-row: 3;
+      grid-row: 2;
       margin-left: var(--r);
       width: 100%;
       transform: translate(calc((var(--c) - var(--min)) / var(--dif) * var(--uw)));
@@ -136,7 +131,7 @@ $range-bar-height: 6px !default;
         padding: 0 0.375em;
         background: $light;
         color: $dark;
-        transform: translateX(-50%) scale(var(--hl));
+        transform: translateY(-25%) translateX(-50%) scale(var(--hl));
         transition: transform $range-transition-timing ease-out;
         counter-reset: c var(--c);
         content: counter(c);
