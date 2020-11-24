@@ -8,9 +8,7 @@ export default class RangeSlider extends React.Component {
       boundsMin: props.min || 0,
       boundsMax: props.max || 100
     }
-    this.title = props.title || 'Range Slider'
     this.className = props.className || ''
-    this.titleClass = props.titleClass || ''
     this.updateVals = props.updateVals || (() => {})
   }
 
@@ -41,7 +39,6 @@ export default class RangeSlider extends React.Component {
           aria-labelledby='multi-lbl'
           className='multi-range'
           style={rangeStyle}>
-          <div id='multi-lbl' className={this.titleClass}>{this.title}</div>
           {
             this.state.vals.map((val, i) => (
               <React.Fragment key={i}>
