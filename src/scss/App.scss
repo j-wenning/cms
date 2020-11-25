@@ -6,12 +6,14 @@ $enable-responsive-font-sizes: true;
 @import './Opacity';
 @import './Filter';
 @import './Product';
+@import './Range';
+@import './Position';
+@import './Z';
 
 @each $breakpoint in $grid-breakpoints {
   $raw-breakpoint: nth($breakpoint, 1);
-  $breakpoint: $raw-breakpoint;
+  $breakpoint: '-' + $raw-breakpoint;
   @if $raw-breakpoint == 'xs' { $breakpoint: null; }
-  @else { $breakpoint: '-' + $breakpoint; }
   @include media-breakpoint-up($raw-breakpoint) {
     @include featured   ($breakpoint);
     @include thumbnail  ($breakpoint);
@@ -19,5 +21,8 @@ $enable-responsive-font-sizes: true;
     @include opacity    ($breakpoint);
     @include filter     ($breakpoint);
     @include product    ($breakpoint);
+    @include range      ($breakpoint);
+    @include position   ($breakpoint);
+    @include z          ($breakpoint);
   }
 }
