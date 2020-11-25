@@ -1,7 +1,7 @@
-import React from 'react'
-import { Switch } from 'react-router-dom'
-import Route from './Route'
-import Routes from './Routes'
+import React from 'react';
+import { Switch } from 'react-router-dom';
+import Route from './Route';
+import Routes from './Routes';
 
 export default class RouteSwitch extends React.Component {
   render() {
@@ -18,6 +18,6 @@ export default class RouteSwitch extends React.Component {
           ))
         }
       </Switch>
-    )
+    );
   }
-}
+};
