@@ -1,15 +1,11 @@
-@import '~bootstrap/scss/mixins/_grid';
-
-$col-featured-count: 6;
-$col-featured-width: 175px;
-$col-featured-width-inc: 25px;
-
-@mixin col-featured($breakpoint: null) {
-  @for $i from 1 through $col-featured-count {
-    .col#{$breakpoint}-featured-#{$i} {
-      @include make-col-ready();
-      flex: 0 0 $col-featured-width;
-      max-width: $col-featured-width + ($i - 1) * $col-featured-width-inc;
-    }
+@mixin featured($breakpoint: '') {
+  .displaybar#{$breakpoint} {
+    display: block;
+    white-space: nowrap;
+    overflow-x: auto;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
+
+  .displaybar#{$breakpoint}::-webkit-scrollbar { display: none; }
 }
