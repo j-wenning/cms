@@ -1,7 +1,0 @@
-@mixin scrollbar($breakpoint: null) {
-  .scrollbar#{$breakpoint} {
-    display: block;
-    white-space: nowrap;
-    overflow-x: auto;
-  }
-}
