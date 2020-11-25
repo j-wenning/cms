@@ -1,5 +1,5 @@
-import React from 'react'
-import { Route as RRoute } from 'react-router-dom'
+import React from 'react';
+import { Route as RRoute } from 'react-router-dom';
 
 export default class Route extends React.Component {
   render() {
@@ -20,6 +20,6 @@ export default class Route extends React.Component {
           ))
         }
       </RRoute>
-    )
+    );
   }
-}
+};
