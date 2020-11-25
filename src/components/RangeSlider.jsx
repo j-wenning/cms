@@ -1,35 +1,34 @@
-import React from 'react'
-import $ from 'jquery'
+import React from 'react';
+import $ from 'jquery';
 
 export default class RangeSlider extends React.Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.state = {
       vals: props.vals || [0, 100],
       boundsMin: props.min || 0,
       boundsMax: props.max || 100,
       outputHeight: 0
-    }
-    this.className = props.className || ''
-    this.updateVals = props.updateVals || (() => {})
-    this.outRef = React.createRef()
-    this._refs = props.vals.map(() => React.createRef())
+    };
+    this.className = props.className || '';
+    this.updateVals = props.updateVals || (() => {});
+    this.outRef = React.createRef();
+    this._refs = props.vals.map(() => React.createRef());
   }
 
   updateBounds(e, index) {
-    const newVals = [...this.state.vals]
-    newVals[index] = Number(e.currentTarget.value)
-    this.setState({ vals: newVals })
-    this.updateVals(newVals)
+    const newVals = [...this.state.vals];
+    newVals[index] = Number(e.currentTarget.value);
+    this.setState({ vals: newVals });
+    this.updateVals(newVals);
   }
 
   componentDidUpdate() {
-    const outputHeight = $(this.outRef.current).css('height')
+    const outputHeight = $(this.outRef.current).css('height');
     this._refs.forEach((ref, i) => {
-      if (ref.current) ref.current.value = this.state.vals[i]
-    })
-    if (this.state.outputHeight !== outputHeight)
-    this.setState({ outputHeight })
+      if (ref.current) ref.current.value = this.state.vals[i];
+    });
+    if (this.state.outputHeight !== outputHeight) this.setState({ outputHeight });
   }
 
   render() {
@@ -43,8 +42,8 @@ export default class RangeSlider extends React.Component {
           transparent 0
         )
       `).join(',').replace(/\s+/, ' ')
-    }
-    this.state.vals.forEach((val, i) => (rangeStyle['--v' + i] = val))
+    };
+    this.state.vals.forEach((val, i) => (rangeStyle['--v' + i] = val));
     return (
       <div style={{ '--oh': this.state.outputHeight }} className={'multi-range-container ' + this.className}>
         <div
@@ -71,6 +70,6 @@ export default class RangeSlider extends React.Component {
           }
         </div>
       </div>
-    )
+    );
   }
-}
+};
