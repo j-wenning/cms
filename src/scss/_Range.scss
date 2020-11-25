@@ -37,9 +37,11 @@ $range-bar-height: 6px !default;
     }
 
     .multi-range-container {
+      --oh: 0;
       @each $dir in right, left {
         margin-#{$dir}: -0.5 * $range-x-padding;
       }
+      margin-bottom: calc(0px - var(--oh));
     }
 
     .multi-range {
