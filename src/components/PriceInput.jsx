@@ -8,8 +8,8 @@ export default class PriceInput extends React.Component {
   render() {
     return (
       <div className='input-group'>
-        <div className="input-group-prepend">
-          <span className="input-group-text font-weight-bold">$</span>
+        <div className='input-group-prepend'>
+          <span className='input-group-text font-weight-bold'>$</span>
         </div>
         <input
           onChange={e => this.handleChange(e)}
