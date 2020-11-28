@@ -1,4 +1,6 @@
-import Home from './Home'
+import Home from './Home';
+import Search from './Search';
+import _404 from './404'
 
 const routes = [
   {
@@ -7,10 +9,17 @@ const routes = [
     routes: []
   },
   {
-    path: '/cart'
+    path: '/search',
+    component: Search,
+    routes: []
+  },
+  {
+    path: '*',
+    component: _404,
+    routes: []
   }
-]
+];
 
-Object.freeze(routes)
+Object.freeze(routes);
 
-export default routes
+export default routes;
