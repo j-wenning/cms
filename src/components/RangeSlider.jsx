@@ -39,7 +39,7 @@ export default class RangeSlider extends React.Component {
             this.props.vals.map((val, i) => {
               return (
                 <React.Fragment key={i}>
-                  <label htmlFor={'v' + i} className="sr-only">Value {i}</label>
+                  <label htmlFor={'v' + i} className='sr-only'>Value {i}</label>
                   <input
                     onChange={e => this.updateBounds(e, i)}
                     min={this.props.min}
