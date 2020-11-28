@@ -42,10 +42,10 @@ export default class ProductList extends React.Component {
               className='navbar-toggler'
               type='button'
               data-toggle='collapse'
-              data-target="#searchNav"
-              aria-controls="searchNav"
-              aria-expanded="false"
-              aria-label="Toggle navigation">
+              data-target='#searchNav'
+              aria-controls='searchNav'
+              aria-expanded='false'
+              aria-label='Toggle navigation'>
               <span className='navbar-toggler-icon'></span>
             </button>
             <div className='collapse navbar-collapse' id='searchNav'>
@@ -54,7 +54,7 @@ export default class ProductList extends React.Component {
                   <form onSubmit={e => this.handleSubmit(e)}>
                     <h4 className='navbar-text'>Price Scale</h4>
                     <PriceScale getRange={cb => this.getRange(cb)} />
-                    <button className='btn btn-primary' type="submit">Submit</button>
+                    <button className='btn btn-primary' type='submit'>Submit</button>
                   </form>
                 </li>
               </ul>
