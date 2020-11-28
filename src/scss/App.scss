@@ -9,6 +9,7 @@ $enable-responsive-font-sizes: true;
 @import './Range';
 @import './Position';
 @import './Z';
+@import './Sizing';
 
 @each $breakpoint in $grid-breakpoints {
   $raw-breakpoint: nth($breakpoint, 1);
@@ -24,5 +25,6 @@ $enable-responsive-font-sizes: true;
     @include range      ($breakpoint);
     @include position   ($breakpoint);
     @include z          ($breakpoint);
+    @include sizing     ($breakpoint);
   }
 }
