@@ -3,7 +3,7 @@ import React from 'react';
 export default class ProductCard extends React.Component {
   constructor(props) {
     super(props);
-    this.defaultImg = 'Default.png';
+    this.defaultImg = 'Default.svg';
     const { 'image_url': image = this.defaultImg, name, description, price, discount } = props.product;
     this.state = { image };
     this.name = name;
