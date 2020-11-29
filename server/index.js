@@ -68,26 +68,33 @@ app.get('/api/products', (req, res, next) => {
   if (min) min = parseInt(min) * 100;
   if (max) max = parseInt(max) * 100;
   db.query(`
-    SELECT  p.id,
-            name,
-            (
-              SELECT  p.description
-              WHERE   $1 = FALSE
-            ),
-            price,
-            discount,
-            (
-              SELECT    url AS image_url
-              FROM      images AS i
-              WHERE     pid = p.id
-              ORDER BY  img_order, id
-              LIMIT     1
-            )
-    FROM    products AS p
-    WHERE   ($1 = FALSE OR discount > 0)
-            AND ($2::TEXT IS NULL OR name ~ $2::TEXT OR description ~ $2::TEXT)
-            AND ($3::INTEGER IS NULL OR price - discount >= $3::INTEGER)
-            AND ($4::INTEGER IS NULL OR price - discount <= $4::INTEGER);
+    SELECT    p.id,
+              p.name,
+              (
+                SELECT  p.description
+                WHERE   $1 = FALSE
+              ),
+              p.price,
+              p.discount,
+              (
+                SELECT    i.url AS image_url
+                FROM      images AS i
+                WHERE     pid = p.id
+                ORDER BY  i.img_order, i.id
+                LIMIT     1
+              )
+    FROM      products AS p
+    LEFT JOIN tags AS t ON (t.pid = p.id)
+    WHERE     ($1 = FALSE OR p.discount > 0)
+              AND (
+                $2::TEXT IS NULL
+                OR p.name ~ $2::TEXT
+                OR p.description ~ $2::TEXT
+                OR $2::TEXT LIKE t.name
+              )
+              AND ($3::INTEGER IS NULL OR p.price - p.discount >= $3::INTEGER)
+              AND ($4::INTEGER IS NULL OR p.price - p.discount <= $4::INTEGER)
+    GROUP BY  p.id;
   `, [deals, search, min, max])
     .then(data => res.json(data.rows))
     .catch(err => next({ err }));
