@@ -6,19 +6,27 @@ import { buildQuery } from './URI';
 export default class ProductList extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { products: [] };
+    this.state = {
+      search: '',
+      offset: 0,
+      limit: 50,
+      totalResults: 0,
+      products: []
+    };
     this.getRangeCB = () => {};
-    this.query = !props.noQuery;
   }
 
   componentDidMount() {
-    this.query = this.query
+    const query = !this.props.noQuery
       ? document.location.search
       : '';
     (async () => {
-      const res = await fetch('/api/products' + this.query);
+      const res = await fetch('/api/products' + query);
       const data = await res.json();
-      if (res.ok) this.setState({ products: data });
+      if (res.ok) {
+        const { meta: { search, offset, limit, totalResults }, products } = data;
+        this.setState({search, offset, limit, totalResults, products });
+      }
       else console.error(data);
     })();
   }
@@ -33,8 +41,17 @@ export default class ProductList extends React.Component {
   }
 
   render() {
+    const offset = this.state.offset;
+    const offsetEnd = offset + this.state.products.length;
+    const results = this.state.totalResults;
+    const search = this.state.search;
     return (
       <div className='container-fluid'>
+        <div className="row">
+          <div className="col-12">
+            <h3>Displaying {offset} - {offsetEnd} of {results} results for <span className='text-primary'>"{search}"</span></h3>
+          </div>
+        </div>
         <div className='row'>
           <div className='d-lg-block col-12 col-lg-3 min-vh-lg-100 navbar navbar-expand-lg align-items-start navbar-dark bg-dark'>
             <h1 className='navbar-brand'>Filters</h1>
