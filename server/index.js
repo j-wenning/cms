@@ -55,11 +55,15 @@ app.get('/api/products/prices', (req, res) => {
 app.get('/api/products', (req, res, next) => {
   let {
     deals: deals = false,
+    limit: limit = null,
+    offset: offset = null,
     s: search = null,
     min: min = null,
     max: max = null
   } = req.query;
   const err = verifyMultiple(
+    [limit, false, val => isNumber(val) && val >= 0, 'positive integer'],
+    [offset, false, val => isNumber(val) && val >= 0, 'positive integer'],
     [min, false, val => isNumber(val) && val >= 0, 'positive integer'],
     [max, false, val => isNumber(val) && val >= 0, 'positive integer']
   );
@@ -82,22 +86,39 @@ app.get('/api/products', (req, res, next) => {
                 WHERE     pid = p.id
                 ORDER BY  i.img_order, i.id
                 LIMIT     1
-              )
+              ),
+              COUNT(*) OVER() AS total_results
     FROM      products AS p
     LEFT JOIN tags AS t ON (t.pid = p.id)
     WHERE     ($1 = FALSE OR p.discount > 0)
               AND (
-                $2::TEXT IS NULL
-                OR p.name ~ $2::TEXT
-                OR p.description ~ $2::TEXT
-                OR $2::TEXT LIKE t.name
+                $4::TEXT IS NULL
+                OR $4::TEXT ~ p.name
+                OR $4::TEXT ~ p.description
+                OR $4::TEXT LIKE t.name
               )
-              AND ($3::INTEGER IS NULL OR p.price - p.discount >= $3::INTEGER)
-              AND ($4::INTEGER IS NULL OR p.price - p.discount <= $4::INTEGER)
-    GROUP BY  p.id;
-  `, [deals, search, min, max])
-    .then(data => res.json(data.rows))
-    .catch(err => next({ err }));
+              AND ($5::INTEGER IS NULL OR $5::INTEGER <= p.price - p.discount)
+              AND ($6::INTEGER IS NULL OR $6::INTEGER >= p.price - p.discount)
+    GROUP BY  p.id
+    LIMIT     $2::INTEGER
+    OFFSET    $3::INTEGER;
+  `, [deals, limit, offset, search, min, max])
+    .then(data => {
+      res.json({
+        meta: {
+          search,
+          limit: limit || 0,
+          offset: offset || 0,
+          totalResults: data.rows[0]?.['total_results'] || 0
+        },
+        products: data.rows.map(data => {
+          delete data['total_results'];
+          data.price /= 100;
+          data.discount /= 100;
+          return data;
+        })
+      });
+    }).catch(err => next({ err }));
 });
 
 app.use((error, req, res, next) => {
