@@ -19,7 +19,10 @@ export default class Featured extends React.Component {
     (async () => {
       const res = await fetch('/api/products?deals=true');
       const data = await res.json();
-      if (res.ok) this.setState({ featured: data });
+      if (res.ok) {
+        const { products } = data;
+        this.setState({ featured: products });
+      }
       else console.error(data);
     })();
   }
