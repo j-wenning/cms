@@ -69,6 +69,7 @@ app.get('/api/products', (req, res, next) => {
   );
   if (err) return next(err);
   deals = !!deals;
+  if (!search) search = null;
   if (min) min = parseInt(min) * 100;
   if (max) max = parseInt(max) * 100;
   db.query(`
