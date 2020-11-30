@@ -9,8 +9,8 @@ export default class ProductCard extends React.Component {
     this.name = name;
     this.price = price;
     this.description = description;
-    this.regPrice = (price / 100).toFixed(2);
-    this.curPrice = ((price - discount) / 100).toFixed(2);
+    this.regPrice = (price).toFixed(2);
+    this.curPrice = (price - discount).toFixed(2);
     this.discount = (discount / price * 100).toFixed(0);
   }
 
@@ -34,10 +34,8 @@ export default class ProductCard extends React.Component {
           <p className='card-text text-truncate'>
             {
               this.discount > 0
-              ? <span>
-                <del>&#36;{this.regPrice}</del> (<small>{this.discount}% off</small>)
-              </span>
-              : <span>&nbsp;</span>
+              ? <><del>&#36;{this.regPrice}</del> (<small>{this.discount}% off</small>)</>
+              : <>&nbsp;</>
             }
           </p>
         </div>
