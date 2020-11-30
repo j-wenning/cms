@@ -39,7 +39,7 @@ app.use(express.static(path.resolve(__dirname, '..', 'public/')));
 // FROM    images AS i
 // WHERE   pid = p.id
 
-app.get('/api/products/prices', (req, res) => {
+app.get('/api/products/prices', (req, res, next) => {
   db.query(`
     SELECT  MIN(price - discount),
             MAX(price - discount)
