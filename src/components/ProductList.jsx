@@ -47,9 +47,9 @@ export default class ProductList extends React.Component {
     const search = this.state.search;
     return (
       <div className='container-fluid'>
-        <div className="row">
-          <div className="col-12">
-            <h3>Displaying {offset} - {offsetEnd} of {results} results for <span className='text-primary'>"{search}"</span></h3>
+        <div className='row'>
+          <div className='col-12 bg-light py-3'>
+            <h3 className='m-0'>Displaying {offset} - {offsetEnd} of {results} results for <span className='text-primary'>"{search}"</span></h3>
           </div>
         </div>
         <div className='row'>
