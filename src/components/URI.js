@@ -10,6 +10,8 @@ export const parseQuery = query => {
 export const buildQuery = (obj, query = '') => {
   const resObj = Object.assign(parseQuery(query), obj);
   let result = '?';
-  for (const key in resObj) result += `${key}=${resObj[key]}&`;
+  for (const key in resObj) {
+    if (resObj[key] != null) result += `${key}=${resObj[key]}&`;
+  }
   return result.substr(0, result.length - 1);
 };
