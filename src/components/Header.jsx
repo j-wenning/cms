@@ -19,7 +19,7 @@ export default class App extends React.Component {
 
   handleSubmit(e) {
     e.preventDefault();
-    const query = buildQuery({ s: this.state.searchQuery }, window.location.search);
+    const query = buildQuery({ s: this.state.searchQuery });
     window.location.replace(`/search` + query);
   }
 
