@@ -9,39 +9,41 @@ export default class ProductList extends React.Component {
     this.state = {
       search: '',
       offset: 0,
-      limit: 50,
+      limit: 0,
       totalResults: 0,
-      products: []
+      products: [],
+      range: [0, 0]
     };
-    this.getRangeCB = () => {};
+  }
+
+  setRange(range) { this.setState({ range }); }
+
+  formQuery() {
+    let [min, max] = this.state.range.map(val => parseInt(val) || 0);
+    const { offset } = this.state;
+    return buildQuery({ offset, min, max }, window.location.search);
+  }
+
+  handleSubmit(e) {
+    e.preventDefault();
+    window.location.replace(`/search` + this.formQuery());
   }
 
   componentDidMount() {
-    const query = !this.props.noQuery
-      ? document.location.search
-      : '';
     (async () => {
+      const query = !this.props.noQuery ? window.location.search : '';
       const res = await fetch('/api/products' + query);
       const data = await res.json();
       if (res.ok) {
         const { meta: { search, offset, limit, totalResults }, products } = data;
-        this.setState({search, offset, limit, totalResults, products });
+        this.setState({ search, offset, limit, totalResults, products });
       }
       else console.error(data);
     })();
   }
 
-  getRange(cb) { this.getRangeCB = cb; }
-
-  handleSubmit(e) {
-    e.preventDefault();
-    const [min, max] = this.getRangeCB();
-    const query = buildQuery({ min, max }, window.location.search);
-    window.location.replace(`/search` + query);
-  }
-
   render() {
-    const offset = this.state.offset;
+    const offset = parseInt(this.state.offset);
     const offsetEnd = offset + this.state.products.length;
     const results = this.state.totalResults;
     const search = this.state.search;
@@ -70,7 +72,7 @@ export default class ProductList extends React.Component {
                 <li className='nav-item form-group'>
                   <form onSubmit={e => this.handleSubmit(e)}>
                     <h4 className='navbar-text'>Price Scale</h4>
-                    <PriceScale getRange={cb => this.getRange(cb)} />
+                    <PriceScale setRange={range => this.setRange(range)} />
                     <button className='btn btn-primary' type='submit'>Submit</button>
                   </form>
                 </li>
