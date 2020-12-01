@@ -40,32 +40,37 @@ app.use(express.static(path.resolve(__dirname, '..', 'public/')));
 // WHERE   pid = p.id
 
 app.get('/api/products/prices', (req, res, next) => {
+  const { s: search = null } = req.query;
   db.query(`
-    SELECT  MIN(price - discount),
-            MAX(price - discount)
-    FROM    products;
-  `).then(data => {
+    SELECT    MIN(price - discount),
+              MAX(price - discount)
+    FROM      products AS p
+    LEFT JOIN tags AS t ON (t.pid = p.id)
+    WHERE     $1::TEXT IS NULL
+              OR p.name ~* $1::TEXT
+              OR p.description ~* $1::TEXT
+              OR t.name LIKE $1::TEXT;
+  `, [search]).then(data => {
       let { min, max } = data.rows[0];
-      min /= 100;
-      max /= 100;
+      min = Math.floor(min / 100);
+      max = Math.ceil(max / 100);
       res.json({ min, max });
     }).catch(err => next({err}));
 });
 
 app.get('/api/products', (req, res, next) => {
+  const limit = 50;
   let {
     deals: deals = false,
-    limit: limit = null,
-    offset: offset = null,
     s: search = null,
     min: min = null,
-    max: max = null
+    max: max = null,
+    offset: offset = 0,
   } = req.query;
   const err = verifyMultiple(
-    [limit, false, val => isNumber(val) && val >= 0, 'positive integer'],
-    [offset, false, val => isNumber(val) && val >= 0, 'positive integer'],
     [min, false, val => isNumber(val) && val >= 0, 'positive integer'],
-    [max, false, val => isNumber(val) && val >= 0, 'positive integer']
+    [max, false, val => isNumber(val) && val >= 0, 'positive integer'],
+    [offset, false, val => isNumber(val) && val >= 0, 'positive integer'],
   );
   if (err) return next(err);
   deals = !!deals;
@@ -93,24 +98,24 @@ app.get('/api/products', (req, res, next) => {
     LEFT JOIN tags AS t ON (t.pid = p.id)
     WHERE     ($1 = FALSE OR p.discount > 0)
               AND (
-                $4::TEXT IS NULL
-                OR $4::TEXT ~ p.name
-                OR $4::TEXT ~ p.description
-                OR $4::TEXT LIKE t.name
+                $2::TEXT IS NULL
+                OR p.name ~* $2::TEXT
+                OR p.description ~* $2::TEXT
+                OR t.name LIKE $2::TEXT
               )
-              AND ($5::INTEGER IS NULL OR $5::INTEGER <= p.price - p.discount)
-              AND ($6::INTEGER IS NULL OR $6::INTEGER >= p.price - p.discount)
+              AND ($3::INTEGER IS NULL OR $3::INTEGER <= p.price - p.discount)
+              AND ($4::INTEGER IS NULL OR $4::INTEGER >= p.price - p.discount)
     GROUP BY  p.id
-    LIMIT     $2::INTEGER
-    OFFSET    $3::INTEGER;
-  `, [deals, limit, offset, search, min, max])
+    LIMIT     $5
+    OFFSET    $6;
+  `, [deals, search, min, max, limit, offset])
     .then(data => {
       res.json({
         meta: {
           search,
-          limit: limit || 0,
-          offset: offset || 0,
-          totalResults: data.rows[0]?.['total_results'] || 0
+          limit,
+          offset,
+          totalResults: data.rows[0]?.['total_results']
         },
         products: data.rows.map(data => {
           delete data['total_results'];
