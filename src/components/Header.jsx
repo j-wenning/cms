@@ -26,7 +26,7 @@ export default class App extends React.Component {
   componentDidMount() {
     this.setState({
       navHeight: $(this.nav.current).css('height'),
-      searchQuery: new URLSearchParams(window.location.search).get('s')
+      searchQuery: new URLSearchParams(window.location.search).get('s') || ''
     });
   }
 
@@ -42,8 +42,8 @@ export default class App extends React.Component {
             <img src='/bootstrap/cart.svg' alt='Cart' />
           </Link>
           <div className='collapse navbar-collapse' id='navbarSearch'>
-            <ul className='navbar-nav mt-2 mt-lg-0'>
-              <li>
+            <ul className='w-md-400p navbar-nav mt-2 mt-lg-0'>
+              <li className='w-md-400p'>
                 <form onSubmit={e => this.handleSubmit(e)} className='input-group'>
                   <input
                     onChange={e => this.handleInput(e)}
