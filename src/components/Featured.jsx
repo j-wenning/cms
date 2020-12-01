@@ -15,18 +15,6 @@ export default class Featured extends React.Component {
     // maybe implement a ramping speed for more items (?)
   }
 
-  componentDidMount() {
-    (async () => {
-      const res = await fetch('/api/products?deals=true');
-      const data = await res.json();
-      if (res.ok) {
-        const { products } = data;
-        this.setState({ featured: products });
-      }
-      else console.error(data);
-    })();
-  }
-
   componentWillUnmount() { clearInterval(this.scrollInterval); }
 
   handleMouseEnter() { this.setState({ hovered: true }); }
@@ -41,6 +29,18 @@ export default class Featured extends React.Component {
   }
 
   scrollXUp() { clearInterval(this.scrollInterval); }
+
+  componentDidMount() {
+    (async () => {
+      const res = await fetch('/api/products?deals=true');
+      const data = await res.json();
+      if (res.ok) {
+        const { products } = data;
+        this.setState({ featured: products });
+      }
+      else console.error(data);
+    })();
+  }
 
   render() {
     return (
