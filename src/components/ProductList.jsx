@@ -77,8 +77,8 @@ export default class ProductList extends React.Component {
               <span className='navbar-toggler-icon'></span>
             </button>
             <div className='collapse navbar-collapse' id='searchNav'>
-              <ul className='navbar-nav mr-auto'>
-                <li className='nav-item form-group'>
+              <ul className='navbar-nav w-100 mr-auto'>
+                <li className='nav-item w-100 form-group'>
                   <form onSubmit={e => this.handleSubmit(e)}>
                     <h4 className='navbar-text'>Price Scale</h4>
                     <PriceScale setRange={range => this.setRange(range)} />
