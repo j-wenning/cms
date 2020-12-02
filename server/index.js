@@ -8,12 +8,12 @@ const port = process.env.PORT;
 
 const serverErr = err => ({ err });
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
-const verify = (val, required = true, expected = null, expectedVal = '') => {
+const verify = (val, required = true, expected = null) => {
   if (!required && val == null) return null;
   if (required && val == null) return userErr('Missing required value');
   if (expected) {
-    if (!expectedVal) console.error(`Missing expected message for ${expected.toString()}`);
-    if (!expected(val)) return userErr(`Expected ${expectedVal || 'correct value'} but received ${val}`);
+    const err = expected(val);
+    if (err) return userErr(`Expected ${err} but received ${val}`);
   }
   return null;
 };
@@ -25,7 +25,14 @@ const verifyMultiple = (...vals) => {
   }
   return err;
 };
-const isNumber = val => !isNaN(parseInt(val));
+const isNum = val => {
+  if (!isNaN(parseInt(val))) return null;
+  return 'number';
+}
+const isPosNum = val => {
+  if (!isNum(val) && val >= 0) return null;
+  return 'positive number';
+}
 
 db.connect();
 
@@ -68,9 +75,9 @@ app.get('/api/products', (req, res, next) => {
     offset: offset = 0,
   } = req.query;
   const err = verifyMultiple(
-    [min, false, val => isNumber(val) && val >= 0, 'positive integer'],
-    [max, false, val => isNumber(val) && val >= 0, 'positive integer'],
-    [offset, false, val => isNumber(val) && val >= 0, 'positive integer'],
+    [min, false, isPosNum],
+    [max, false, isPosNum],
+    [offset, false, isPosNum],
   );
   if (err) return next(err);
   deals = !!deals;
