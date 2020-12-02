@@ -31,7 +31,7 @@ export default class ProductList extends React.Component {
 
   handleSubmit(e) {
     e.preventDefault();
-    this.applyQuery();
+    this.setState({ offset: 0 }, () => this.applyQuery());
   }
 
   componentDidMount() {
