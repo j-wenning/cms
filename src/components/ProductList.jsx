@@ -2,6 +2,7 @@ import React from 'react';
 import ProductCard from './ProductCard';
 import PriceScale from './PriceScale';
 import { buildQuery } from './URI';
+import { getAdjVals } from './AdjacentValues';
 
 export default class ProductList extends React.Component {
   constructor(props) {
@@ -24,9 +25,13 @@ export default class ProductList extends React.Component {
     return buildQuery({ offset, min, max }, window.location.search);
   }
 
+  applyQuery() { window.location.assign(`/search` + this.formQuery()); }
+
+  queryOffset(offset) { this.setState({ offset }, () => this.applyQuery()); }
+
   handleSubmit(e) {
     e.preventDefault();
-    window.location.replace(`/search` + this.formQuery());
+    this.applyQuery();
   }
 
   componentDidMount() {
@@ -47,15 +52,19 @@ export default class ProductList extends React.Component {
     const offsetEnd = offset + this.state.products.length;
     const results = this.state.totalResults;
     const search = this.state.search;
+    const limit = this.state.limit;
+    const currentPage = offset / limit + 1;
+    const totalPages = Math.ceil(results / limit);
+    const pagesArr = getAdjVals(currentPage, 2, 1, totalPages);
     return (
       <div className='container-fluid'>
         <div className='row'>
           <div className='col-12 bg-light py-3'>
-            <h3 className='m-0'>Displaying {offset} - {offsetEnd} of {results} results for <span className='text-primary'>"{search}"</span></h3>
+            <h4 className='m-0'>Displaying {offset + 1} - {offsetEnd} of {results} results for <span className='text-primary'>"{search}"</span></h4>
           </div>
         </div>
         <div className='row'>
-          <div className='d-lg-block col-12 col-lg-3 min-vh-lg-100 navbar navbar-expand-lg align-items-start navbar-dark bg-dark'>
+          <div className='d-lg-block col-12 col-lg-3 navbar navbar-expand-lg align-items-start navbar-dark bg-dark'>
             <h1 className='navbar-brand'>Filters</h1>
             <button
               className='navbar-toggler'
@@ -94,6 +103,52 @@ export default class ProductList extends React.Component {
                   ))
                 }
               </div>
+              {
+                results > this.state.limit &&
+                <div className='row my-5'>
+                  <div className='col-6 col-md-4 mt-3 mt-md-0'>
+                    <button
+                      onClick={() => this.queryOffset(offset - limit)}
+                      className='btn btn-outline-primary'
+                      disabled={offset <= 0}
+                      type='button'>
+                      <img
+                        className='mr-3 d-none d-md-inline-block'
+                        src='/bootstrap/chevron-left.svg'
+                        alt=''/>
+                      <span>Previous</span>
+                    </button>
+                  </div>
+                  <div className='col-12 col-md-4 order-first order-md-0 d-flex justify-content-between'>
+                    {
+                      pagesArr.map(page => {
+                        const isCurrentPage = page === currentPage;
+                        return (
+                          <button
+                            onClick={() => this.queryOffset(limit * (page - 1))}
+                            disabled={isCurrentPage}
+                            className={`btn ${isCurrentPage ? 'btn-primary' : 'btn-outline-primary'} border-0`}
+                            key={page}
+                            type='button'>{page}</button>
+                        )
+                      })
+                    }
+                  </div>
+                  <div className='col-6 col-md-4 mt-3 mt-md-0 text-right'>
+                    <button
+                      onClick={() => this.queryOffset(offset + limit)}
+                      disabled={offsetEnd >= results}
+                      className='btn btn-outline-primary'
+                      type='button'>
+                      <span>Next</span>
+                      <img
+                        className='ml-3 d-none d-md-inline-block'
+                        src='/bootstrap/chevron-right.svg'
+                        alt=''/>
+                    </button>
+                  </div>
+                </div>
+              }
             </div>
           </div>
         </div>
