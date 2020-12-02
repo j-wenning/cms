@@ -1,0 +1,3 @@
+@mixin filter($breakpoint) {
+  .filter#{$breakpoint}-invert { filter: invert(1); }
+}

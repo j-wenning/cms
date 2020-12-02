@@ -1,0 +1,11 @@
+@mixin featured($breakpoint: '') {
+  .displaybar#{$breakpoint} {
+    display: block;
+    white-space: nowrap;
+    overflow-x: auto;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .displaybar#{$breakpoint}::-webkit-scrollbar { display: none; }
+}

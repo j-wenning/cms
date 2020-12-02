@@ -1,0 +1,27 @@
+$opacity-min-divisor: 0 !default;
+$opacity-max-divisor: 5 !default;
+
+@mixin opacity($breakpoint: '') {
+  $divisor: $opacity-min-divisor;
+  $quotient: 0;
+  $quotient-str: '0';
+  $class-name-list: [];
+  @while $divisor <= $opacity-max-divisor {
+    @for $i from 0 to $divisor + 1 {
+      @if $divisor == 0 or $i == 0 {
+        $quotient: 0;
+        $quotient-str: '0';
+      } @else {
+        $quotient: $i / $divisor;
+        @if ($quotient == 1) { $quotient-str: '1'; }
+        @else { $quotient-str: $i + '\\/' + $divisor; }
+      }
+      $class-name: 'opacity#{$breakpoint}-#{$quotient-str}';
+      @if index($class-name-list, $class-name) == null {
+        .#{$class-name} { opacity: $quotient; }
+        $class-name-list: append($class-name-list, $class-name)
+      }
+    }
+    $divisor: $divisor + 1;
+  }
+}

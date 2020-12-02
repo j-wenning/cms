@@ -1,0 +1,5 @@
+@mixin whitespace($breakpoint: '') {
+  .whitespace#{$breakpoint}-normal { white-space: normal; }
+
+  .whitespace#{$breakpoint}-nowrap { white-space: nowrap; }
+}

@@ -1,36 +1,60 @@
-import React from 'react'
-import { SearchIcon } from '@primer/octicons-react'
-import $ from 'jquery'
-import { Link } from 'react-router-dom'
+import React from 'react';
+import $ from 'jquery';
+import { Link } from 'react-router-dom';
+import { buildQuery } from './URI';
 
 export default class App extends React.Component {
-  constructor() {
-    super()
-    this.nav = React.createRef()
-    this.state = { navHeight: 0 }
+  constructor(props) {
+    super(props);
+    this.nav = React.createRef();
+    this.state = {
+      navHeight: 0,
+      searchQuery: ''
+    };
+  }
+
+  handleInput(e) { this.setState({ searchQuery: e.target.value }); }
+
+  resetInput() { this.setState({ searchQuery: '' }); }
+
+  handleSubmit(e) {
+    e.preventDefault();
+    const query = buildQuery({ s: this.state.searchQuery });
+    window.location.assign(`/search` + query);
   }
 
   componentDidMount() {
-    this.setState({ navHeight: $(this.nav.current).css('height') })
+    this.setState({
+      navHeight: $(this.nav.current).css('height'),
+      searchQuery: new URLSearchParams(window.location.search).get('s') || ''
+    });
   }
 
   render() {
     return (
       <header style={{paddingTop: this.state.navHeight}}>
-        <nav className="navbar navbar-expand-md navbar-light bg-light fixed-top" ref={this.nav}>
-          <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSearch" aria-controls="navbarSearch" aria-expanded="false" aria-label="Toggle navigation">
-            <span className="navbar-toggler-icon"></span>
+        <nav className='navbar navbar-expand-md navbar-light bg-light fixed-top' ref={this.nav}>
+          <button className='navbar-toggler' type='button' data-toggle='collapse' data-target='#navbarSearch' aria-controls='navbarSearch' aria-expanded='false' aria-label='Toggle navigation'>
+            <span className='navbar-toggler-icon'></span>
           </button>
-          <Link to="/" className="navbar navbar-brand mr-0 mr-md-2">Brand</Link>
-          <Link to="/cart" className="navbar navbar-brand order-md-last mr-0">Cart</Link>
-          <div className="collapse navbar-collapse" id="navbarSearch">
-            <ul className="navbar-nav mt-2 mt-lg-0">
-              <li>
-                <form className="input-group">
-                  <input type="text" className="form-control" placeholder="Search" aria-label="Search" />
-                  <div className="input-group-append">
-                    <button className="btn btn-outline-secondary" type="submit">
-                      <SearchIcon />
+          <Link onClick={() => this.resetInput()} to='/' className='navbar navbar-brand mr-0 mr-md-2'>Brand</Link>
+          <Link onClick={() => this.resetInput()} to='/cart' className='navbar navbar-brand order-md-last mr-0' title='Cart'>
+            <img src='/bootstrap/cart.svg' alt='Cart' />
+          </Link>
+          <div className='collapse navbar-collapse' id='navbarSearch'>
+            <ul className='w-md-400p navbar-nav mt-2 mt-lg-0'>
+              <li className='w-md-400p'>
+                <form onSubmit={e => this.handleSubmit(e)} className='input-group'>
+                  <input
+                    onChange={e => this.handleInput(e)}
+                    value={this.state.searchQuery}
+                    className='form-control'
+                    type='text'
+                    placeholder='Search'
+                    aria-label='Search' />
+                  <div className='input-group-append'>
+                    <button className='btn btn-outline-secondary' type='submit'>
+                      <img src='/bootstrap/search.svg' alt='Search' />
                     </button>
                   </div>
                 </form>
@@ -39,6 +63,6 @@ export default class App extends React.Component {
           </div>
         </nav>
       </header>
-    )
+    );
   }
-}
+};

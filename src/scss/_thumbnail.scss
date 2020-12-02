@@ -1,0 +1,13 @@
+$img-thumbnail-count: 6 !default;
+$img-thumbnail-size-init: 75px !default;
+$img-thumbnail-size-inc: 25px !default;
+
+@mixin thumbnail($breakpoint: '') {
+  @for $i from 1 through $img-thumbnail-count {
+    .img#{$breakpoint}-thumbnail-#{$i} {
+      object-fit: contain;
+      height: $img-thumbnail-size-init + ($i - 1) * $img-thumbnail-size-inc;
+      width: $img-thumbnail-size-init + ($i - 1) * $img-thumbnail-size-inc;
+    }
+  }
+}

@@ -1,0 +1,7 @@
+$z-count: 3 !default;
+
+@mixin z($breakpoint: '') {
+  @for $i from 1 through $z-count {
+    .z#{$breakpoint}-#{$i} { z-index: $i; }
+  }
+}
