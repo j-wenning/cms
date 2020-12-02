@@ -59,7 +59,7 @@ app.get('/api/products/prices', (req, res, next) => {
 });
 
 app.get('/api/products', (req, res, next) => {
-  const limit = 50;
+  const limit = 25;
   let {
     deals: deals = false,
     s: search = null,
