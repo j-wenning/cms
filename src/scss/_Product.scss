@@ -12,6 +12,19 @@ $product-description-line-max: 10 !default;
 
 
 @mixin product($breakpoint: '') {
+  @if $breakpoint == null {
+    .product-modal-content {
+      height: 65vh;
+    }
+
+    .product-modal-img {
+      object-fit: contain;
+      height: 50vh;
+      width: 100%;
+      max-width: 80vw;
+    }
+  }
+
   @for $i from 1 through $product-col-count {
     .product-col#{$breakpoint}-#{$i} {
       @include make-col-ready();
