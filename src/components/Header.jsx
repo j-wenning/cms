@@ -42,8 +42,8 @@ export default class App extends React.Component {
             <img src='/bootstrap/cart.svg' alt='Cart' />
           </Link>
           <div className='collapse navbar-collapse' id='navbarSearch'>
-            <ul className='w-md-400p navbar-nav mt-2 mt-lg-0'>
-              <li className='w-md-400p'>
+            <ul className='w-md-px-400 navbar-nav mt-2 mt-lg-0'>
+              <li className='w-md-px-400'>
                 <form onSubmit={e => this.handleSubmit(e)} className='input-group'>
                   <input
                     onChange={e => this.handleInput(e)}
