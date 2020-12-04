@@ -1,4 +1,5 @@
 @mixin sizing($breakpoint) {
   .min-vh#{$breakpoint}-100 { min-height: 100vh; }
-  .w#{$breakpoint}-400p { width: 400px; }
+
+  .w#{$breakpoint}-px-400 { width: 400px; }
 }
