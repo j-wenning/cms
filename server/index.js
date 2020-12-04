@@ -42,10 +42,6 @@ app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules
 
 app.use(express.static(path.resolve(__dirname, '..', 'public/')));
 
-// SELECT  ARRAY_AGG(url ORDER BY img_order, id) images
-// FROM    images AS i
-// WHERE   pid = p.id
-
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
   db.query(`
@@ -131,6 +127,35 @@ app.get('/api/products', (req, res, next) => {
           return data;
         })
       });
+    }).catch(err => next({ err }));
+});
+
+app.get('/api/product', (req, res, next) => {
+  let { id } = req.query;
+  const err = verifyMultiple(
+    [id, true, isPosNum]
+  );
+  if (err) return next(err);
+  id = parseInt(id);
+  db.query(`
+    SELECT    p.*,
+              JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'url', i.url,
+                  'alt', i.alt
+                )
+                ORDER BY i.img_order
+              ) AS images
+    FROM      products AS p
+    LEFT JOIN images AS i ON(i.pid = p.id)
+    WHERE     p.id = $1
+    GROUP BY  p.id;
+  `, [id])
+    .then(data => {
+      const result = data.rows[0];
+      result.price /= 100;
+      result.discount /= 100;
+      res.json(result);
     }).catch(err => next({ err }));
 });
 
