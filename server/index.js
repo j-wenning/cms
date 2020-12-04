@@ -90,12 +90,16 @@ app.get('/api/products', (req, res, next) => {
               p.price,
               p.discount,
               (
-                SELECT    i.url AS image_url
-                FROM      images AS i
-                WHERE     pid = p.id
-                ORDER BY  i.img_order, i.id
-                LIMIT     1
-              ),
+                SELECT  JSON_BUILD_OBJECT(
+                          'url', i.url,
+                          'alt', i.alt
+                        )
+                FROM images AS i
+                WHERE i.pid = p.id
+                ORDER BY i.img_order,
+                         i.id
+                LIMIT 1
+              ) AS img,
               COUNT(*) OVER() AS total_results
     FROM      products AS p
     LEFT JOIN tags AS t ON (t.pid = p.id)
