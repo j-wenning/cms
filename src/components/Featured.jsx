@@ -51,7 +51,7 @@ export default class Featured extends React.Component {
           className='p-0 mx-0 container-fluid card-deck displaybar'>
           {
             this.state.hovered &&
-            <div className='h-100 w-100 position-absolute position-center d-flex justify-content-between align-items-center z-1'>
+            <div className='h-100 w-100 position-absolute position-center d-flex justify-content-between align-items-center passthrough z-1'>
               <button
                 onMouseDown={() => this.scrollXDown(-1)}
                 onMouseUp={() => this.scrollXUp()}
