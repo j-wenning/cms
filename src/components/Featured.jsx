@@ -37,8 +37,7 @@ export default class Featured extends React.Component {
       if (res.ok) {
         const { products } = data;
         this.setState({ featured: products });
-      }
-      else console.error(data);
+      } else console.error(data);
     })();
   }
 
