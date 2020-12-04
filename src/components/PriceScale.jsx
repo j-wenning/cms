@@ -46,8 +46,7 @@ export default class PriceScale extends React.Component {
           priceRange: [qMin, qMax],
           updated: true
         }, () => this.setRange(this.state.priceRange));
-      }
-      else console.error(data);
+      } else console.error(data);
     })();
   }
 
