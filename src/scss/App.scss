@@ -10,21 +10,23 @@ $enable-responsive-font-sizes: true;
 @import './Position';
 @import './Z';
 @import './Sizing';
+@import './Passthrough';
 
 @each $breakpoint in $grid-breakpoints {
   $raw-breakpoint: nth($breakpoint, 1);
   $breakpoint: '-' + $raw-breakpoint;
   @if $raw-breakpoint == 'xs' { $breakpoint: null; }
   @include media-breakpoint-up($raw-breakpoint) {
-    @include featured   ($breakpoint);
-    @include thumbnail  ($breakpoint);
-    @include whitespace ($breakpoint);
-    @include opacity    ($breakpoint);
-    @include filter     ($breakpoint);
-    @include product    ($breakpoint);
-    @include range      ($breakpoint);
-    @include position   ($breakpoint);
-    @include z          ($breakpoint);
-    @include sizing     ($breakpoint);
+    @include featured     ($breakpoint);
+    @include thumbnail    ($breakpoint);
+    @include whitespace   ($breakpoint);
+    @include opacity      ($breakpoint);
+    @include filter       ($breakpoint);
+    @include product      ($breakpoint);
+    @include range        ($breakpoint);
+    @include position     ($breakpoint);
+    @include z            ($breakpoint);
+    @include sizing       ($breakpoint);
+    @include passthrough  ($breakpoint);
   }
 }
