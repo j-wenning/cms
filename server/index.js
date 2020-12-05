@@ -47,12 +47,12 @@ app.get('/api/products/prices', (req, res, next) => {
   db.query(`
     SELECT    MIN(price - discount),
               MAX(price - discount)
-    FROM      products AS p
-    LEFT JOIN tags AS t ON (t.pid = p.id)
-    WHERE     $1::TEXT IS NULL
-              OR p.name ~* $1::TEXT
-              OR p.description ~* $1::TEXT
-              OR t.name LIKE $1::TEXT;
+    FROM      products  AS p
+    LEFT JOIN tags      AS t ON t.pid = p.id
+    WHERE     $1::TEXT          IS    NULL
+              OR p.name         ~*    $1::TEXT
+              OR p.description  ~*    $1::TEXT
+              OR t.name         LIKE  $1::TEXT;
   `, [search]).then(data => {
       let { min, max } = data.rows[0];
       min = Math.floor(min / 100);
@@ -64,11 +64,11 @@ app.get('/api/products/prices', (req, res, next) => {
 app.get('/api/products', (req, res, next) => {
   const limit = 25;
   let {
-    deals: deals = false,
+    deals = false,
     s: search = null,
-    min: min = null,
-    max: max = null,
-    offset: offset = 0,
+    min = null,
+    max = null,
+    offset = 0,
   } = req.query;
   const err = verifyMultiple(
     [min, false, isPosNum],
@@ -84,34 +84,43 @@ app.get('/api/products', (req, res, next) => {
     SELECT    p.id,
               p.name,
               (
-                SELECT  p.description
-                WHERE   $1 = FALSE
+                SELECT    p.description
+                WHERE     $1 = FALSE
               ),
               p.price,
               p.discount,
               (
-                SELECT  JSON_BUILD_OBJECT(
-                          'url', i.url,
-                          'alt', i.alt
-                        )
-                FROM images AS i
-                WHERE i.pid = p.id
-                ORDER BY i.img_order,
-                         i.id
-                LIMIT 1
+                SELECT    JSON_BUILD_OBJECT(
+                            'url', i.url,
+                            'alt', i.alt
+                          )
+                FROM      images AS i
+                WHERE     i.pid = p.id
+                ORDER BY  i.img_order,
+                          i.id
+                LIMIT     1
               ) AS img,
               COUNT(*) OVER() AS total_results
-    FROM      products AS p
-    LEFT JOIN tags AS t ON (t.pid = p.id)
-    WHERE     ($1 = FALSE OR p.discount > 0)
-              AND (
-                $2::TEXT IS NULL
-                OR p.name ~* $2::TEXT
-                OR p.description ~* $2::TEXT
-                OR t.name LIKE $2::TEXT
+    FROM      products  AS p
+    LEFT JOIN tags      AS t ON t.pid = p.id
+    WHERE     (
+                $1                =     FALSE
+                OR p.discount     >     0
               )
-              AND ($3::INTEGER IS NULL OR $3::INTEGER <= p.price - p.discount)
-              AND ($4::INTEGER IS NULL OR $4::INTEGER >= p.price - p.discount)
+              AND (
+                $2::TEXT          IS    NULL
+                OR p.name         ~*    $2::TEXT
+                OR p.description  ~*    $2::TEXT
+                OR t.name         LIKE  $2::TEXT
+              )
+              AND (
+                $3::INTEGER       IS    NULL
+                OR $3::INTEGER    <=    p.price - p.discount
+              )
+              AND (
+                $4::INTEGER       IS    NULL
+                OR $4::INTEGER    >=    p.price - p.discount
+              )
     GROUP BY  p.id
     LIMIT     $5
     OFFSET    $6;
@@ -142,18 +151,35 @@ app.get('/api/product', (req, res, next) => {
   if (err) return next(err);
   id = parseInt(id);
   db.query(`
+    WITH images_cte AS (
+      SELECT    JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'url', url,
+                    'alt', alt
+                  )
+                  ORDER BY img_order
+                ) AS images,
+                pid AS id
+      FROM      images
+      WHERE     pid = $1
+      GROUP BY  pid
+    ), shipping_cte AS (
+      SELECT    ARRAY_AGG(
+                  sm.name
+                ) AS shipping_methods,
+                s.pid AS id
+      FROM      shipping AS s
+      JOIN      shipping_methods AS sm ON sm.id = s.shipping_method
+      WHERE     s.pid = $1
+      GROUP BY  s.pid
+    )
     SELECT    p.*,
-              JSON_AGG(
-                JSON_BUILD_OBJECT(
-                  'url', i.url,
-                  'alt', i.alt
-                )
-                ORDER BY i.img_order
-              ) AS images
-    FROM      products AS p
-    LEFT JOIN images AS i ON(i.pid = p.id)
-    WHERE     p.id = $1
-    GROUP BY  p.id;
+              i.images,
+              s.shipping_methods
+    FROM      products      AS p
+    LEFT JOIN images_cte    AS i USING(id)
+    LEFT JOIN shipping_cte  AS s USING(id)
+    WHERE     p.id = $1;
   `, [id])
     .then(data => {
       const result = data.rows[0];
