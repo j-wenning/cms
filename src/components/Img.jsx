@@ -4,11 +4,7 @@ export default class Img extends React.Component {
   constructor(props) {
     super(props);
     const { src = '', alt = '', className = '' } = props;
-    this.state = {
-      src,
-      alt,
-      className
-    }
+    this.state = { src, alt, className };
   }
   render() {
     const errSrc = 'Default.svg';
