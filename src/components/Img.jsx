@@ -8,12 +8,13 @@ export default class Img extends React.Component {
   }
   render() {
     const errSrc = 'Default.svg';
+    const errAlt = 'Missing image';
     const { src, alt, className } = this.state;
     return (
       <img
         src={'/images/' + src}
         alt={alt}
-        onError={() => this.setState({ src: errSrc })}
+        onError={() => this.setState({ src: errSrc, alt: errAlt })}
         className={className} />
     );
   }
