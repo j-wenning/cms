@@ -1,20 +1,36 @@
 import React from 'react';
+import { difference } from './Set';
 
 export default class Img extends React.Component {
   constructor(props) {
     super(props);
-    const { src = '', alt = '', className = '' } = props;
-    this.state = { src, alt, className };
+    this.state = {}
+    this.getPropsAsState();
   }
+
+  getPropsAsState() {
+    const {src, alt, className } = this.props;
+    this.setState({ src, alt, className, err: false });
+  }
+
+  componentDidUpdate(prevProps) {
+    const isNewProps = difference(Object.values(prevProps), Object.values(this.props)).size > 0;
+    if (isNewProps) this.getPropsAsState();
+  }
+
+  componentDidMount() { this.getPropsAsState(); }
+
   render() {
-    const errSrc = 'Default.svg';
-    const errAlt = 'Missing image';
-    const { src, alt, className } = this.state;
+    let { src, alt, className, err } = this.state;
+    if (err) {
+      src = 'Default.svg';
+      alt = 'Missing image';
+    }
     return (
       <img
         src={'/images/' + src}
         alt={alt}
-        onError={() => this.setState({ src: errSrc, alt: errAlt })}
+        onError={() => this.setState({ err: true })}
         className={className} />
     );
   }
