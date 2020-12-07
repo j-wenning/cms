@@ -13,15 +13,23 @@ $product-description-line-max: 10 !default;
 
 @mixin product($breakpoint: '') {
   @if $breakpoint == null {
-    .product-modal-content {
-      height: 65vh;
+    .product-modal-dialog {
+      display: flex;
+      height: 100vh;
+      min-height: unset;
+      width: 100%;
+      max-width: unset;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
     }
 
+    .product-modal-content { max-width: 90%; }
+
     .product-modal-img {
-      object-fit: contain;
-      height: 50vh;
       width: 100%;
-      max-width: 80vw;
+      max-height: 85vh;
+      object-fit: contain;
     }
   }
 
