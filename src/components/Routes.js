@@ -1,6 +1,7 @@
 import Home from './Home';
 import Search from './Search';
-import _404 from './404'
+import Product from './Product';
+import _404 from './404';
 
 const routes = [
   {
@@ -11,6 +12,11 @@ const routes = [
   {
     path: '/search',
     component: Search,
+    routes: []
+  },
+  {
+    path: '/product',
+    component: Product,
     routes: []
   },
   {
