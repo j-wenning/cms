@@ -1,7 +1,8 @@
 import React from 'react';
 import ProductCard from './ProductCard';
+import { buildQuery } from './URI';
 
-export default class Featured extends React.Component {
+export default class ProductBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -17,7 +18,10 @@ export default class Featured extends React.Component {
 
   componentWillUnmount() { clearInterval(this.scrollInterval); }
 
-  handleMouseEnter() { this.setState({ hovered: true }); }
+  handleMouseEnter() {
+    const { scrollWidth, offsetWidth } = this.scrollArea.current;
+    if (scrollWidth > offsetWidth) this.setState({ hovered: true });
+  }
 
   handleMouseLeave() { this.setState({ hovered: false }); }
 
@@ -31,8 +35,10 @@ export default class Featured extends React.Component {
   scrollXUp() { clearInterval(this.scrollInterval); }
 
   componentDidMount() {
+    let { location = '', query = '' } = this.props;
+    query = buildQuery(query);
     (async () => {
-      const res = await fetch('/api/products?deals=true');
+      const res = await fetch('/api/products' + location + query);
       const data = await res.json();
       if (res.ok) {
         const { products } = data;
