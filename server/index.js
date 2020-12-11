@@ -6,6 +6,37 @@ const app = express();
 const db = new Pool({ connectionString: process.env.DB_URL });
 const port = process.env.PORT;
 
+const productLimit = 25;
+
+const productSelect = table => {
+  let _table = table || '';
+  if (table) _table += '.';
+  return `
+    ${_table}id,
+    ${_table}name,
+    ${_table}price,
+    ${_table}discount,
+    (
+      SELECT    JSON_BUILD_OBJECT(
+                  'url', i.url,
+                  'alt', i.alt
+                )
+      FROM      images AS i
+      WHERE     i.pid = ${_table}id
+      ORDER BY  i.img_order,
+                i.id
+      LIMIT     1
+    ) AS img
+  `;
+};
+
+const productSearchMatch = paramIndex => `
+  $${paramIndex}::TEXT  IS    NULL
+  OR p.name             ~*    $${paramIndex}::TEXT
+  OR p.description      ~*    $${paramIndex}::TEXT
+  OR t.name             LIKE  $${paramIndex}::TEXT
+`;
+
 const serverErr = err => ({ err });
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
 const verify = (val, required = true, expected = null) => {
@@ -49,10 +80,7 @@ app.get('/api/products/prices', (req, res, next) => {
               MAX(price - discount)
     FROM      products  AS p
     LEFT JOIN tags      AS t ON t.pid = p.id
-    WHERE     $1::TEXT          IS    NULL
-              OR p.name         ~*    $1::TEXT
-              OR p.description  ~*    $1::TEXT
-              OR t.name         LIKE  $1::TEXT;
+    WHERE     ${productSearchMatch(1)};
   `, [search]).then(data => {
       let { min, max } = data.rows[0];
       min = Math.floor(min / 100);
@@ -61,8 +89,41 @@ app.get('/api/products/prices', (req, res, next) => {
     }).catch(err => next({err}));
 });
 
+app.get('/api/products/related', (req, res, next) => {
+  let { id = null } = req.query;
+  const err = verifyMultiple(
+    [id, true, isPosNum]
+  );
+  if (err) return next(err);
+  id = parseInt(id);
+  db.query(`
+    WITH products_cte AS (
+      SELECT    ${productSelect('p')},
+                ARRAY_AGG(t.name) AS tags
+      FROM      products  AS p
+      LEFT JOIN tags      AS t ON (t.pid = p.id)
+      GROUP BY  p.id
+    )
+    SELECT  ${productSelect()}
+    FROM    products_cte
+    WHERE   tags && (
+              SELECT tags
+              FROM  products_cte
+              WHERE id = $1
+            )
+            AND id != $1
+    LIMIT   $2;
+  `, [id, productLimit])
+    .then(data => res.json({
+      products: data.rows.map(row => {
+        row.price /= 100;
+        row.discount /= 100;
+        return row;
+      })
+    })).catch(err => next({ err }));
+});
+
 app.get('/api/products', (req, res, next) => {
-  const limit = 25;
   let {
     deals = false,
     s: search = null,
@@ -81,25 +142,11 @@ app.get('/api/products', (req, res, next) => {
   if (min) min = parseInt(min) * 100;
   if (max) max = parseInt(max) * 100;
   db.query(`
-    SELECT    p.id,
-              p.name,
+    SELECT    ${productSelect('p')},
               (
                 SELECT    p.description
                 WHERE     $1 = FALSE
               ),
-              p.price,
-              p.discount,
-              (
-                SELECT    JSON_BUILD_OBJECT(
-                            'url', i.url,
-                            'alt', i.alt
-                          )
-                FROM      images AS i
-                WHERE     i.pid = p.id
-                ORDER BY  i.img_order,
-                          i.id
-                LIMIT     1
-              ) AS img,
               COUNT(*) OVER() AS total_results
     FROM      products  AS p
     LEFT JOIN tags      AS t ON t.pid = p.id
@@ -108,10 +155,7 @@ app.get('/api/products', (req, res, next) => {
                 OR p.discount     >     0
               )
               AND (
-                $2::TEXT          IS    NULL
-                OR p.name         ~*    $2::TEXT
-                OR p.description  ~*    $2::TEXT
-                OR t.name         LIKE  $2::TEXT
+                ${productSearchMatch(2)}
               )
               AND (
                 $3::INTEGER       IS    NULL
@@ -124,34 +168,34 @@ app.get('/api/products', (req, res, next) => {
     GROUP BY  p.id
     LIMIT     $5
     OFFSET    $6;
-  `, [deals, search, min, max, limit, offset])
+  `, [deals, search, min, max, productLimit, offset])
     .then(data => {
       res.json({
         meta: {
           search,
-          limit,
+          PRODUCT_LIMIT,
           offset,
           totalResults: data.rows[0]?.['total_results']
         },
-        products: data.rows.map(data => {
-          delete data['total_results'];
-          data.price /= 100;
-          data.discount /= 100;
-          return data;
+        products: data.rows.map(row => {
+          delete row['total_results'];
+          row.price /= 100;
+          row.discount /= 100;
+          return row;
         })
       });
     }).catch(err => next({ err }));
 });
 
 app.get('/api/product', (req, res, next) => {
-  let { id } = req.query;
+  let { id = null } = req.query;
   const err = verifyMultiple(
     [id, true, isPosNum]
   );
   if (err) return next(err);
   id = parseInt(id);
   db.query(`
-    WITH images_cte AS (
+    WITH      images_cte    AS (
       SELECT    JSON_AGG(
                   JSON_BUILD_OBJECT(
                     'url', url,
@@ -161,16 +205,14 @@ app.get('/api/product', (req, res, next) => {
                 ) AS images,
                 pid AS id
       FROM      images
-      WHERE     pid = $1
       GROUP BY  pid
-    ), shipping_cte AS (
+    ),        shipping_cte  AS (
       SELECT    ARRAY_AGG(
                   sm.name
                 ) AS shipping_methods,
                 s.pid AS id
       FROM      shipping AS s
       JOIN      shipping_methods AS sm ON sm.id = s.shipping_method
-      WHERE     s.pid = $1
       GROUP BY  s.pid
     )
     SELECT    p.*,
@@ -179,7 +221,7 @@ app.get('/api/product', (req, res, next) => {
     FROM      products      AS p
     LEFT JOIN images_cte    AS i USING(id)
     LEFT JOIN shipping_cte  AS s USING(id)
-    WHERE     p.id = $1;
+    WHERE     id = $1;
   `, [id])
     .then(data => {
       const result = data.rows[0];
