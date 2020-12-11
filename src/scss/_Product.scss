@@ -31,6 +31,12 @@ $product-description-line-max: 10 !default;
       max-height: 85vh;
       object-fit: contain;
     }
+
+    .product-preview {
+      height: 300px;
+      width: 100%;
+      object-fit: contain;
+    }
   }
 
   @for $i from 1 through $product-col-count {
