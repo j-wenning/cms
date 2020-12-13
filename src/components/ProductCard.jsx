@@ -16,9 +16,10 @@ export default class ProductCard extends React.Component {
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
+    const query = buildQuery({ id });
     return (
       <Link
-        to={'/product' + buildQuery({ id })}
+        to={'/product' + query}
         className={'p-0 card d-inline-block whitespace-normal text-reset text-decoration-none ' + this.props?.className}>
         <div className='card-body d-flex flex-column justify-content-between'>
           <div className='mb-2 card-img-top text-center'>
