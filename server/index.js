@@ -173,7 +173,7 @@ app.get('/api/products', (req, res, next) => {
       res.json({
         meta: {
           search,
-          PRODUCT_LIMIT,
+          limit: productLimit,
           offset,
           totalResults: data.rows[0]?.['total_results']
         },
