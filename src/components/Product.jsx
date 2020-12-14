@@ -1,9 +1,10 @@
 import React from 'react';
+import { withRouter } from 'react-router-dom';
 import Img from './Img';
 import ProductBar from './ProductBar';
 import { buildQuery } from './URI';
 
-export default class Product extends React.Component {
+class Product extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -26,7 +27,7 @@ export default class Product extends React.Component {
   doFetch() {
     const id = new URLSearchParams(window.location.search).get('id');
     const query = buildQuery({ id });
-    if (isNaN(parseInt(id))) return window.location.replace('/');
+    if (isNaN(parseInt(id))) return this.props.history.push('/');
     if (this.state.id === id) return;
     this.setState({ id });
     (async () => {
@@ -194,3 +195,5 @@ export default class Product extends React.Component {
     );
   }
 };
+
+export default withRouter(Product);
