@@ -6,7 +6,7 @@ export default class ProductBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      featured: [],
+      products: [],
       hovered: false
     };
     this.scrollInterval = null;
@@ -42,14 +42,16 @@ export default class ProductBar extends React.Component {
       const data = await res.json();
       if (res.ok) {
         const { products } = data;
-        this.setState({ featured: products });
+        const fetchCB = this.props.fetchCB;
+        this.setState({ products });
+        if (fetchCB) fetchCB(products);
       } else console.error(data);
     })();
   }
 
   render() {
     return (
-      <div className={'position-relative ' + this.props.className}>
+      <div className={'product-bar position-relative ' + this.props.className}>
         <div
           ref={this.scrollArea}
           onMouseEnter={() => this.handleMouseEnter()}
@@ -77,13 +79,13 @@ export default class ProductBar extends React.Component {
             </div>
           }
           {
-            this.state.featured.map((product, i) => {
+            this.state.products.map((product, i) => {
               let endClass = ''
               switch(i) {
                 case 0:
                   endClass = 'ml-0'
                   break
-                case this.state.featured.length - 1:
+                case this.state.products.length - 1:
                   endClass = 'mr-0'
                   break
                 default: break
