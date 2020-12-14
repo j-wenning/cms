@@ -1,10 +1,12 @@
 import React from 'react';
+import { withRouter } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import PriceScale from './PriceScale';
 import { buildQuery } from './URI';
 import { getAdjVals } from './AdjacentValues';
+import { isEqual } from './Object';
 
-export default class ProductList extends React.Component {
+class ProductList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -25,7 +27,7 @@ export default class ProductList extends React.Component {
     return buildQuery({ offset, min, max }, window.location.search);
   }
 
-  applyQuery() { window.location.assign(`/search` + this.formQuery()); }
+  applyQuery() { this.props.history.push(`/search` + this.formQuery()); }
 
   queryOffset(offset) { this.setState({ offset }, () => this.applyQuery()); }
 
@@ -34,7 +36,7 @@ export default class ProductList extends React.Component {
     this.setState({ offset: 0 }, () => this.applyQuery());
   }
 
-  componentDidMount() {
+  doFetch() {
     (async () => {
       const query = !this.props.noQuery ? window.location.search : '';
       const res = await fetch('/api/products' + query);
@@ -46,6 +48,10 @@ export default class ProductList extends React.Component {
       else console.error(data);
     })();
   }
+
+  componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
+
+  componentDidMount() { this.doFetch(); }
 
   render() {
     const offset = parseInt(this.state.offset);
@@ -156,3 +162,5 @@ export default class ProductList extends React.Component {
     );
   }
 };
+
+export default withRouter(ProductList);
