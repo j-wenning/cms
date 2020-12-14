@@ -1,5 +1,6 @@
 import React from 'react';
 import ProductCard from './ProductCard';
+import { isEqual } from './Object';
 import { buildQuery } from './URI';
 
 export default class ProductBar extends React.Component {
@@ -13,17 +14,21 @@ export default class ProductBar extends React.Component {
     this.scrollIntervalPoll = 20;
     this.scrollArea = React.createRef();
     this.scrollSpeed = this.props?.scrollSpeed || 20;
+    this.controller = new AbortController();
     // maybe implement a ramping speed for more items (?)
   }
 
-  componentWillUnmount() { clearInterval(this.scrollInterval); }
+  componentWillUnmount() {
+    clearInterval(this.scrollInterval);
+    this.controller.abort();
+  }
 
   handleMouseEnter() {
     const { scrollWidth, offsetWidth } = this.scrollArea.current;
-    if (scrollWidth > offsetWidth) this.setState({ hovered: true });
+    if (scrollWidth > offsetWidth && !this.state.hovered) this.setState({ hovered: true });
   }
 
-  handleMouseLeave() { this.setState({ hovered: false }); }
+  handleMouseLeave() { if (this.state.hovered) this.setState({ hovered: false }); }
 
   scrollXDown(direction) {
     clearInterval(this.scrollInterval);
@@ -34,20 +39,27 @@ export default class ProductBar extends React.Component {
 
   scrollXUp() { clearInterval(this.scrollInterval); }
 
-  componentDidMount() {
+  doFetch() {
     let { location = '', query = '' } = this.props;
+    const signal = this.controller.signal;
     query = buildQuery(query);
     (async () => {
-      const res = await fetch('/api/products' + location + query);
-      const data = await res.json();
-      if (res.ok) {
-        const { products } = data;
-        const fetchCB = this.props.fetchCB;
-        this.setState({ products });
-        if (fetchCB) fetchCB(products);
-      } else console.error(data);
+      try {
+        const res = await fetch('/api/products' + location + query, { signal });
+        const data = await res.json();
+        if (res.ok) {
+          const { products } = data;
+          const fetchCB = this.props.fetchCB;
+          this.setState({ products });
+          if (fetchCB) fetchCB(products);
+        } else console.error(data);
+      } catch (err) {};
     })();
   }
+
+  componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
+
+  componentDidMount() { this.doFetch(); }
 
   render() {
     return (
