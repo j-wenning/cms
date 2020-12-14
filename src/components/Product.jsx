@@ -1,30 +1,34 @@
 import React from 'react';
 import Img from './Img';
+import ProductBar from './ProductBar';
 import { buildQuery } from './URI';
 
 export default class Product extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      id: null,
       images: [],
       name: '',
       description: '',
       price: 0,
       discount: 0,
-      hoveredCarousel: false,
       shippingMethods: [],
       shippingMethod: '',
       modalSrc: null,
       modalAlt: null,
+      recommended: true,
     };
   }
 
-  handleHover(toggled) { this.setState({ hoveredCarousel: toggled }); }
+  setRecommended(recommended) { this.setState({ recommended: recommended.length > 0 }); }
 
-  componentDidMount() {
+  doFetch() {
     const id = new URLSearchParams(window.location.search).get('id');
     const query = buildQuery({ id });
     if (isNaN(parseInt(id))) return window.location.replace('/');
+    if (this.state.id === id) return;
+    this.setState({ id });
     (async () => {
       const res = await fetch('/api/product' + query);
       const data = await res.json();
@@ -40,13 +44,17 @@ export default class Product extends React.Component {
     })();
   }
 
+  componentDidMount() { this.doFetch(); }
+
+  componentDidUpdate() { this.doFetch(); }
+
   render() {
-    const { price, discount, modalSrc, modalAlt } = this.state;
+    const { id, price, discount, modalSrc, modalAlt, recommended } = this.state;
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
     return (
-      <main className='position-relative'>
+      <main className='position-relative mt-2'>
         <div
           className='modal fade'
           id='product-img-modal'
@@ -72,80 +80,77 @@ export default class Product extends React.Component {
         </div>
         <div className='container-fluid'>
           <div className='row'>
-            <div className='col-12 col-md-6 col-xl-4'>
-              <div
-                onMouseEnter={() => this.handleHover(true)}
-                onMouseLeave={() => this.handleHover(false)}
-                id='product-img-carousel'
-                className='position-relative carousel slide border border-dark'
-                data-ride='carousel'>
-                {
-                  this.state.hoveredCarousel &&
-                  <div className='position-absolute position-center-full bg-dark opacity-1/4 passthrough z-1'></div>
-                }
-                <ol className='carousel-indicators'>
+            <div className="container col-12 col-xl-9">
+              <div className="row">
+                <div
+                  id='product-img-carousel'
+                  className='position-relative carousel slide col-12 col-md-6 mb-5'
+                  data-ride='carousel'>
+                  <ol className='carousel-indicators'>
+                    {
+                      this.state.images.map((img, i) => {
+                        const isFirst = i === 0;
+                        return (
+                          <li
+                            data-target='#product-img-carousel'
+                            data-slide-to={i}
+                            key={i}
+                            className={`border border-dark ${isFirst ? 'active' : ''}`} />
+                        )
+                      })
+                    }
+                  </ol>
+                  <div className='carousel-inner border border-dark rounded'>
+                    {
+                      this.state.images.map((img, i) => {
+                        let { url, alt } = img;
+                        const isFirst = i === 0;
+                        return (
+                          <button
+                            onClick={() => this.setState({ modalSrc: url, modalAlt: alt })}
+                            data-toggle='modal'
+                            data-target='#product-img-modal'
+                            className={'btn carousel-item text-center ' + (isFirst ? 'active' : '')}
+                            type='button'
+                            key={i}>
+                            <Img
+                              src={url}
+                              alt={alt}
+                              className='product-preview' />
+                          </button>
+                        );
+                      })
+                    }
+                  </div>
                   {
-                    this.state.images.map((img, i) => {
-                      const isFirst = i === 0;
-                      return (
-                        <li
-                          data-target='#product-img-carousel'
-                          data-slide-to={i}
-                          key={i}
-                          className={isFirst ? 'active' : ''} />
-                      )
-                    })
-                  }
-                </ol>
-                <div className='carousel-inner'>
-                  {
-                    this.state.images.map((img, i) => {
-                      let { url, alt } = img;
-                      const isFirst = i === 0;
-                      return (
-                        <button
-                          onClick={() => this.setState({ modalSrc: url, modalAlt: alt })}
-                          data-toggle='modal'
-                          data-target='#product-img-modal'
-                          className={'btn carousel-item ' + (isFirst ? 'active' : '')}
-                          type='button'
-                          key={i}>
-                          <Img
-                            src={url}
-                            alt={alt}
-                            className='d-block' />
-                        </button>
-                      );
-                    })
+                    this.state.images.length > 1 &&
+                    <>
+                      <a className='carousel-control-prev' href='#product-img-carousel' role='button' data-slide='prev'>
+                        <span className='carousel-control-prev-icon' aria-hidden='true' />
+                        <span className='sr-only'>Previous</span>
+                      </a>
+                      <a className='carousel-control-next' href='#product-img-carousel' role='button' data-slide='next'>
+                        <span className='carousel-control-next-icon' aria-hidden='true' />
+                        <span className='sr-only'>Next</span>
+                      </a>
+                    </>
                   }
                 </div>
-                {
-                  this.state.images.length > 1 &&
-                  <>
-                    <a className='carousel-control-prev' href='#product-img-carousel' role='button' data-slide='prev'>
-                      <span className='carousel-control-prev-icon' aria-hidden='true' />
-                      <span className='sr-only'>Previous</span>
-                    </a>
-                    <a className='carousel-control-next' href='#product-img-carousel' role='button' data-slide='next'>
-                      <span className='carousel-control-next-icon' aria-hidden='true' />
-                      <span className='sr-only'>Next</span>
-                    </a>
-                  </>
-                }
+                <div className="col-12 col-md-6 mb-5">
+                  <h4>{this.state.name}</h4>
+                  <h5>
+                    <span className='text-primary'>${curPrice}&nbsp;</span>
+                    {
+                      this.state.discount > 0 &&
+                      <span className='text-secondary'><del>${regPrice}</del> ({percentOff}% off)</span>
+                    }
+                  </h5>
+                  <p>{this.state.description}</p>
+                </div>
               </div>
             </div>
-            <div className='col-12 col-md-6 col-xl-5'>
-              <h4>{this.state.name}</h4>
-              <h5>
-                <span className='text-primary'>${curPrice}&nbsp;</span>
-                {
-                  this.state.discount > 0 &&
-                  <span className='text-secondary'><del>${regPrice}</del> ({percentOff}% off)</span>
-                }
-              </h5>
-              <p>{this.state.description}</p>
-            </div>
-            <div className='col-12 col-xl-3 d-flex flex-column order-first order-xl-0'>
+            <div className='col-12 col-xl-3 d-flex flex-column order-first order-xl-0 mb-5'>
+              <h4>Preferred Shipping Method</h4>
               {
                 this.state.shippingMethods.length > 0
                 ? this.state.shippingMethods.map((method, i) => {
@@ -172,6 +177,18 @@ export default class Product extends React.Component {
               </div>
             </div>
           </div>
+          {
+            recommended &&
+            <div className="row">
+              <div className="jumbotron col-12">
+                <h4 className='mb-5'>Related products</h4>
+                {
+                  this.state.id != null &&
+                  <ProductBar location='/related' query={{ id }} fetchCB={recommended => this.setRecommended(recommended)} />
+                }
+              </div>
+            </div>
+          }
         </div>
       </main>
     );
