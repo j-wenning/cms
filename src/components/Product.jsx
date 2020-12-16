@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMD from 'react-markdown';
 import { withRouter } from 'react-router-dom';
 import Img from './Img';
 import ProductBar from './ProductBar';
@@ -12,6 +13,7 @@ class Product extends React.Component {
       images: [],
       name: '',
       description: '',
+      information: '',
       price: 0,
       discount: 0,
       shippingMethods: [],
@@ -34,9 +36,9 @@ class Product extends React.Component {
       const res = await fetch('/api/product' + query);
       const data = await res.json();
       if (res.ok) {
-        const { images, name, description, price, discount, 'shipping_methods': shippingMethods } = data;
+        const { images, name, description, information, price, discount, 'shipping_methods': shippingMethods } = data;
         this.setState({
-          name, description, price, discount,
+          name, description, information, price, discount,
           images: images || [{}],
           shippingMethods: shippingMethods || [],
           shippingMethod: shippingMethods?.[0]
@@ -50,7 +52,20 @@ class Product extends React.Component {
   componentDidUpdate() { this.doFetch(); }
 
   render() {
-    const { id, price, discount, modalSrc, modalAlt, recommended } = this.state;
+    const {
+      id,
+      images,
+      name,
+      description,
+      information, //markdown implementation thing probably
+      price,
+      discount,
+      shippingMethod,
+      shippingMethods,
+      modalSrc,
+      modalAlt,
+      recommended
+    } = this.state;
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
@@ -89,7 +104,7 @@ class Product extends React.Component {
                   data-ride='carousel'>
                   <ol className='carousel-indicators'>
                     {
-                      this.state.images.map((img, i) => {
+                      images.map((img, i) => {
                         const isFirst = i === 0;
                         return (
                           <li
@@ -103,7 +118,7 @@ class Product extends React.Component {
                   </ol>
                   <div className='carousel-inner border border-dark rounded'>
                     {
-                      this.state.images.map((img, i) => {
+                      images.map((img, i) => {
                         let { url, alt } = img;
                         const isFirst = i === 0;
                         return (
@@ -124,7 +139,7 @@ class Product extends React.Component {
                     }
                   </div>
                   {
-                    this.state.images.length > 1 &&
+                    images.length > 1 &&
                     <>
                       <a className='carousel-control-prev' href='#product-img-carousel' role='button' data-slide='prev'>
                         <span className='carousel-control-prev-icon' aria-hidden='true' />
@@ -138,24 +153,25 @@ class Product extends React.Component {
                   }
                 </div>
                 <div className="col-12 col-md-6 mb-5">
-                  <h4>{this.state.name}</h4>
+                  <h4>{name}</h4>
                   <h5>
                     <span className='text-primary'>${curPrice}&nbsp;</span>
                     {
-                      this.state.discount > 0 &&
+                      discount > 0 &&
                       <span className='text-secondary'><del>${regPrice}</del> ({percentOff}% off)</span>
                     }
                   </h5>
-                  <p>{this.state.description}</p>
+                  <p>{description}</p>
+                  <ReactMD children={information} />
                 </div>
               </div>
             </div>
             <div className='col-12 col-xl-3 d-flex flex-column order-first order-xl-0 mb-5'>
               <h4>Preferred Shipping Method</h4>
               {
-                this.state.shippingMethods.length > 0
-                ? this.state.shippingMethods.map((method, i) => {
-                  const isFirstMethod = method === this.state.shippingMethod;
+                shippingMethods.length > 0
+                ? shippingMethods.map((method, i) => {
+                  const isFirstMethod = method === shippingMethod;
                   const shipping = method.toLocaleUpperCase()[0] + method.substr(1).toLocaleLowerCase()
                   return (
                     <label key={i}>
@@ -184,7 +200,7 @@ class Product extends React.Component {
               <div className="jumbotron col-12">
                 <h4 className='mb-5'>Related products</h4>
                 {
-                  this.state.id != null &&
+                  id != null &&
                   <ProductBar location='/related' query={{ id }} fetchCB={recommended => this.setRecommended(recommended)} />
                 }
               </div>
