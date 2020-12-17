@@ -1,4 +1,4 @@
-@mixin passthrough($breakpoint) {
+@mixin passthrough($breakpoint: '') {
   .passthrough,
   .passthrough-inherit { pointer-events: none; }
 
