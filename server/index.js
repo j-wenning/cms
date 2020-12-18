@@ -214,19 +214,35 @@ app.get('/api/product', (req, res, next) => {
       FROM      shipping AS s
       JOIN      shipping_methods AS sm ON sm.id = s.shipping_method
       GROUP BY  s.pid
+    ),        ratings_cte   AS (
+      SELECT    AVG(rating) AS rating,
+                COUNT(*) AS rating_count,
+                (
+                  SELECT  rating
+                  FROM    ratings
+                  WHERE   uid = 1
+                ) AS user_rating,
+                pid AS id
+      FROM      ratings AS r
+      GROUP BY  pid
     )
     SELECT    p.*,
               i.images,
-              s.shipping_methods
+              s.shipping_methods,
+              COALESCE(r.rating,        0) AS rating,
+              COALESCE(r.user_rating,   0) AS user_rating,
+              COALESCE(r.rating_count,  0) AS rating_count
     FROM      products      AS p
     LEFT JOIN images_cte    AS i USING(id)
     LEFT JOIN shipping_cte  AS s USING(id)
+    LEFT JOIN ratings_Cte   AS r USING(id)
     WHERE     id = $1;
   `, [id])
     .then(data => {
       const result = data.rows[0];
       result.price /= 100;
       result.discount /= 100;
+      result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10
       res.json(result);
     }).catch(err => next({ err }));
 });
