@@ -16,6 +16,7 @@ $carousel-control-next-icon-bg: url("data:image/svg+xml,<svg xmlns='http://www.w
 @import './Z';
 @import './Sizing';
 @import './Passthrough';
+@import './Rating';
 
 @each $breakpoint in $grid-breakpoints {
   $raw-breakpoint: nth($breakpoint, 1);
@@ -33,5 +34,6 @@ $carousel-control-next-icon-bg: url("data:image/svg+xml,<svg xmlns='http://www.w
     @include z            ($breakpoint);
     @include sizing       ($breakpoint);
     @include passthrough  ($breakpoint);
+    @include rating       ($breakpoint);
   }
 }
