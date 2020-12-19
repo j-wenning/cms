@@ -8,6 +8,7 @@ $img-thumbnail-size-inc: 25px !default;
       object-fit: contain;
       height: $img-thumbnail-size-init + ($i - 1) * $img-thumbnail-size-inc;
       width: $img-thumbnail-size-init + ($i - 1) * $img-thumbnail-size-inc;
+      max-width: 100%;
     }
   }
 }
