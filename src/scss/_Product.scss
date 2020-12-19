@@ -37,6 +37,8 @@ $product-description-line-max: 10 !default;
       width: 100%;
       object-fit: contain;
     }
+
+    .product-markdown img { max-width: 100%; }
   }
 
   @for $i from 1 through $product-col-count {
