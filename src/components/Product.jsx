@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactMD from 'react-markdown';
-import { withRouter } from 'react-router-dom';
+import { Link, withRouter } from 'react-router-dom';
 import Img from './Img';
 import ProductBar from './ProductBar';
+import RatingBar from './RatingBar';
 import { buildQuery } from './URI';
 
 class Product extends React.Component {
@@ -21,6 +22,9 @@ class Product extends React.Component {
       modalSrc: null,
       modalAlt: null,
       recommended: true,
+      rating: null,
+      userRating: null,
+      ratingCount: null,
     };
   }
 
@@ -36,13 +40,21 @@ class Product extends React.Component {
       const res = await fetch('/api/product' + query);
       const data = await res.json();
       if (res.ok) {
-        const { images, name, description, information, price, discount, 'shipping_methods': shippingMethods } = data;
+        const {
+          images, name, description, information, price, discount,
+          rating,
+          'shipping_methods': shippingMethods,
+          'user_rating': userRating,
+          'rating_count': ratingCount,
+         } = data;
         this.setState({
-          name, description, information, price, discount,
+          name, description, information, price, discount, rating, userRating,
+          ratingCount,
           images: images || [{}],
           shippingMethods: shippingMethods || [],
-          shippingMethod: shippingMethods?.[0]
+          shippingMethod: shippingMethods?.[0],
         });
+        console.log(rating, userRating, ratingCount)
       } else console.error(data);
     })();
   }
@@ -53,18 +65,9 @@ class Product extends React.Component {
 
   render() {
     const {
-      id,
-      images,
-      name,
-      description,
-      information, //markdown implementation thing probably
-      price,
-      discount,
-      shippingMethod,
-      shippingMethods,
-      modalSrc,
-      modalAlt,
-      recommended
+      id, images, name, description, information, price, discount, shippingMethod,
+      shippingMethods, modalSrc, modalAlt, recommended, rating, userRating,
+      ratingCount,
     } = this.state;
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
@@ -96,8 +99,8 @@ class Product extends React.Component {
         </div>
         <div className='container-fluid'>
           <div className='row'>
-            <div className="container col-12 col-xl-9">
-              <div className="row">
+            <div className='container col-12 col-xl-9'>
+              <div className='row'>
                 <div
                   id='product-img-carousel'
                   className='position-relative carousel slide col-12 col-md-6 mb-5'
@@ -152,7 +155,7 @@ class Product extends React.Component {
                     </>
                   }
                 </div>
-                <div className="col-12 col-md-6 mb-5">
+                <div className='col-12 col-md-6 mb-5'>
                   <h4>{name}</h4>
                   <h5>
                     <span className='text-primary'>${curPrice}&nbsp;</span>
@@ -162,7 +165,15 @@ class Product extends React.Component {
                     }
                   </h5>
                   <p>{description}</p>
-                  <ReactMD children={information} />
+                  <h4>Rating</h4>
+                  <RatingBar className='mb-2' rating={userRating} id={id} />
+                  <p className='text-info'>Average rating: {rating} stars</p>
+                  <p className='text-info'>Total ratings: {ratingCount}</p>
+                </div>
+              </div>
+              <div className='row'>
+                <div className='col-12'>
+                  <ReactMD className='product-markdown'>{information}</ReactMD>
                 </div>
               </div>
             </div>
@@ -189,15 +200,15 @@ class Product extends React.Component {
                 : <p>No shipping methods available.</p>
               }
               <div>
-                <a href='' className='btn btn-primary mr-2'>Buy now</a>
-                <a href='' className='btn btn-secondary'>Add to cart</a>
+                <Link to='/' className='btn btn-primary mr-2'>Buy now</Link>
+                <Link to='/' className='btn btn-secondary'>Add to cart</Link>
               </div>
             </div>
           </div>
           {
             recommended &&
-            <div className="row">
-              <div className="jumbotron col-12">
+            <div className='row'>
+              <div className='jumbotron col-12'>
                 <h4 className='mb-5'>Related products</h4>
                 {
                   id != null &&
