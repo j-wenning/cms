@@ -2,12 +2,20 @@ require('dotenv/config');
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const redis = require('redis');
+const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
+const redisClient = redis.createClient();
 const app = express();
-const db = new Pool({ connectionString: process.env.DB_URL });
-const port = process.env.PORT;
-
+const {
+  NODE_ENV: nodeEnv,
+  PORT: port,
+  DB_URL: dbUrl,
+  SESSION_SECRET: sessionSecret,
+  SESSION_EXPIRY: sessionExpiry
+} = process.env;
+const db = new Pool({ connectionString: dbUrl });
 const productLimit = 25;
-
 const productSelect = table => {
   let _table = table || '';
   if (table) _table += '.';
@@ -29,14 +37,12 @@ const productSelect = table => {
     ) AS img
   `;
 };
-
 const productSearchMatch = paramIndex => `
   $${paramIndex}::TEXT  IS    NULL
   OR p.name             ~*    $${paramIndex}::TEXT
   OR p.description      ~*    $${paramIndex}::TEXT
   OR t.name             LIKE  $${paramIndex}::TEXT
 `;
-
 const serverErr = err => ({ err });
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
 const verify = (val, required = true, expected = null) => {
@@ -59,13 +65,28 @@ const verifyMultiple = (...vals) => {
 const isNum = val => {
   if (!isNaN(parseInt(val))) return null;
   return 'number';
-}
+};
 const isPosNum = val => {
   if (!isNum(val) && val >= 0) return null;
   return 'positive number';
-}
+};
 
 db.connect();
+
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false,
+    rolling: true,
+    saveUninitialized: false,
+    store: new RedisStore({ client: redisClient }),
+    cookie: {
+      sameSite: true,
+      httpOnly: nodeEnv === 'production',
+      maxAge: parseInt(sessionExpiry),
+    },
+  })
+);
 
 app.use(express.json());
 
@@ -242,7 +263,7 @@ app.get('/api/product', (req, res, next) => {
       const result = data.rows[0];
       result.price /= 100;
       result.discount /= 100;
-      result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10
+      result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10;
       res.json(result);
     }).catch(err => next({ err }));
 });
