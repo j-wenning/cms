@@ -90,6 +90,12 @@ app.use(
 
 app.use(express.json());
 
+// temporary middleware for forcing an existing user id
+app.use((req, res, next) => {
+  req.session.uid = 1;
+  next();
+});
+
 app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules', 'bootstrap-icons', 'icons/')));
 
 app.use(express.static(path.resolve(__dirname, '..', 'public/')));
@@ -209,6 +215,7 @@ app.get('/api/products', (req, res, next) => {
 });
 
 app.get('/api/product', (req, res, next) => {
+  const { uid = null } = req.session;
   let { id = null } = req.query;
   const err = verifyMultiple(
     [id, true, isPosNum]
@@ -241,7 +248,7 @@ app.get('/api/product', (req, res, next) => {
                 (
                   SELECT  rating
                   FROM    ratings
-                  WHERE   uid = 1
+                  WHERE   uid = $2
                 ) AS user_rating,
                 pid AS id
       FROM      ratings AS r
@@ -258,7 +265,7 @@ app.get('/api/product', (req, res, next) => {
     LEFT JOIN shipping_cte  AS s USING(id)
     LEFT JOIN ratings_Cte   AS r USING(id)
     WHERE     id = $1;
-  `, [id])
+  `, [id, uid])
     .then(data => {
       const result = data.rows[0];
       result.price /= 100;
