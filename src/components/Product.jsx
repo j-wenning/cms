@@ -54,7 +54,6 @@ class Product extends React.Component {
           shippingMethods: shippingMethods || [],
           shippingMethod: shippingMethods?.[0],
         });
-        console.log(rating, userRating, ratingCount)
       } else console.error(data);
     })();
   }
