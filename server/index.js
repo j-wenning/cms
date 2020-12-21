@@ -43,7 +43,6 @@ const productSearchMatch = paramIndex => `
   OR p.description      ~*    $${paramIndex}::TEXT
   OR t.name             LIKE  $${paramIndex}::TEXT
 `;
-const serverErr = err => ({ err });
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
 const verify = (val, required = true, expected = null) => {
   if (!required && val == null) return null;
@@ -62,14 +61,11 @@ const verifyMultiple = (...vals) => {
   }
   return err;
 };
-const isNum = val => {
-  if (!isNaN(parseInt(val))) return null;
-  return 'number';
-};
-const isPosNum = val => {
-  if (!isNum(val) && val >= 0) return null;
-  return 'positive number';
-};
+const isNum = val => isNaN(parseInt(val)) ? 'number' : null;
+
+const isPosNum = val => isNum(val) || val < 0 ? 'positive number' : null;
+
+const isValidRating = val => val < 1 || val > 10 ? 'valid rating' : null;
 
 db.connect();
 
@@ -119,7 +115,7 @@ app.get('/api/products/prices', (req, res, next) => {
 app.get('/api/products/related', (req, res, next) => {
   let { id = null } = req.query;
   const err = verifyMultiple(
-    [id, true, isPosNum]
+    [id, true, isPosNum],
   );
   if (err) return next(err);
   id = parseInt(id);
@@ -218,7 +214,7 @@ app.get('/api/product', (req, res, next) => {
   const { uid = null } = req.session;
   let { id = null } = req.query;
   const err = verifyMultiple(
-    [id, true, isPosNum]
+    [id, true, isPosNum],
   );
   if (err) return next(err);
   id = parseInt(id);
@@ -273,6 +269,30 @@ app.get('/api/product', (req, res, next) => {
       result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10;
       res.json(result);
     }).catch(err => next({ err }));
+});
+
+app.put('/api/product/rating', (req, res, next) => {
+  const { uid = null } = req.session;
+  const {
+    id,
+    rating,
+  } = req.body;
+  let err = verifyMultiple(
+    [id, true, isPosNum],
+    [rating, true, isValidRating],
+  );
+  if (uid == null) err = userErr('Unauthorized', 401);
+  if (err) return next(err);
+  db.query(`
+    INSERT INTO   ratings (pid, uid, rating)
+    VALUES        ($1, $2, $3)
+    ON CONFLICT
+    ON CONSTRAINT unique_rating
+    DO UPDATE SET rating = $3
+    RETURNING     rating;
+  `, [id, uid, rating])
+      .then(data => res.json(data.rows[0]))
+      .catch(err => next({ err }));
 });
 
 app.use((error, req, res, next) => {
