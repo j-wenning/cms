@@ -6,7 +6,17 @@ export default class RatingBar extends React.Component {
     this.state = { rating: null };
   }
 
-  handleClick(rating) { this.setState({ rating }); }
+  handleClick(rating) {
+    if (this.state.rating !== rating) {
+      fetch('/api/product/rating', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, id: this.props.id })
+      }).then(res => res.json())
+        .then(data => this.setState({ rating: data.rating }))
+        .catch(err => console.error(err));
+    }
+  }
 
   render() {
     const rating = this.state.rating || this.props.rating || 0;
