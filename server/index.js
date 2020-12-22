@@ -96,6 +96,37 @@ app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules
 
 app.use(express.static(path.resolve(__dirname, '..', 'public/')));
 
+app.use((req, res, next) => {
+  const { uid, cid } = req.session;
+  if (uid == null || cid != null) return next();
+  db.query(`
+    WITH  carts_cte_sel AS (
+      SELECT  id,
+              uid,
+              checked_out
+      FROM    carts
+      WHERE   uid = $1 AND NOT checked_out
+      LIMIT   1
+    ),    carts_cte_ins AS (
+      INSERT INTO carts(uid)
+      SELECT      $1
+      WHERE       NOT EXISTS(
+        SELECT  1
+        FROM    carts_cte_sel
+      )
+      RETURNING   id
+    )
+    SELECT    id AS cid
+    FROM      carts_cte_sel
+    FULL JOIN carts_cte_ins USING(id);
+  `, [uid])
+    .then(data => {
+      const { cid } = data.rows[0];
+      req.session.cid = cid;
+      next();
+    }).catch(err => next({ err }));
+});
+
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
   db.query(`
