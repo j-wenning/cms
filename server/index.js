@@ -7,6 +7,7 @@ const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
 const redisClient = redis.createClient();
 const app = express();
+const db = new Pool({ connectionString: dbUrl });
 const {
   NODE_ENV: nodeEnv,
   PORT: port,
@@ -14,35 +15,27 @@ const {
   SESSION_SECRET: sessionSecret,
   SESSION_EXPIRY: sessionExpiry
 } = process.env;
-const db = new Pool({ connectionString: dbUrl });
 const productLimit = 25;
-const productSelect = table => {
-  let _table = table || '';
-  if (table) _table += '.';
+const productSelect = (alias = '') => {
+  if (alias) alias += '.';
   return `
-    ${_table}id,
-    ${_table}name,
-    ${_table}price,
-    ${_table}discount,
+    ${alias}id,
+    ${alias}name,
+    ${alias}price,
+    ${alias}discount,
     (
       SELECT    JSON_BUILD_OBJECT(
                   'url', i.url,
                   'alt', i.alt
                 )
       FROM      images AS i
-      WHERE     i.pid = ${_table}id
+      WHERE     i.pid = ${alias}id
       ORDER BY  i.img_order,
                 i.id
       LIMIT     1
     ) AS img
   `;
 };
-const productSearchMatch = paramIndex => `
-  $${paramIndex}::TEXT  IS    NULL
-  OR p.name             ~*    $${paramIndex}::TEXT
-  OR p.description      ~*    $${paramIndex}::TEXT
-  OR t.name             LIKE  $${paramIndex}::TEXT
-`;
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
 const verify = (val, required = true, expected = null) => {
   if (!required && val == null) return null;
@@ -134,7 +127,10 @@ app.get('/api/products/prices', (req, res, next) => {
               MAX(price - discount)
     FROM      products  AS p
     LEFT JOIN tags      AS t ON t.pid = p.id
-    WHERE     ${productSearchMatch(1)};
+    WHERE     $1::TEXT          IS    NULL
+              OR p.name         ~*    $1::TEXT
+              OR p.description  ~*    $1::TEXT
+              OR t.name         LIKE  $1::TEXT;
   `, [search]).then(data => {
       let { min, max } = data.rows[0];
       min = Math.floor(min / 100);
@@ -209,7 +205,10 @@ app.get('/api/products', (req, res, next) => {
                 OR p.discount     >     0
               )
               AND (
-                ${productSearchMatch(2)}
+                $2::TEXT          IS    NULL
+                OR p.name         ~*    $2::TEXT
+                OR p.description  ~*    $2::TEXT
+                OR t.name         LIKE  $2::TEXT
               )
               AND (
                 $3::INTEGER       IS    NULL
