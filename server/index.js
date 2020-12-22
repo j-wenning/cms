@@ -1,4 +1,11 @@
 require('dotenv/config');
+const {
+  NODE_ENV: nodeEnv,
+  PORT: port,
+  DB_URL: dbUrl,
+  SESSION_SECRET: sessionSecret,
+  SESSION_EXPIRY: sessionExpiry
+} = process.env;
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
@@ -8,13 +15,6 @@ const RedisStore = require('connect-redis')(session);
 const redisClient = redis.createClient();
 const app = express();
 const db = new Pool({ connectionString: dbUrl });
-const {
-  NODE_ENV: nodeEnv,
-  PORT: port,
-  DB_URL: dbUrl,
-  SESSION_SECRET: sessionSecret,
-  SESSION_EXPIRY: sessionExpiry
-} = process.env;
 const productLimit = 25;
 const productSelect = (alias = '') => {
   if (alias) alias += '.';
