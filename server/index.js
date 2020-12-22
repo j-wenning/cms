@@ -304,10 +304,7 @@ app.get('/api/product', (req, res, next) => {
 
 app.put('/api/product/rating', (req, res, next) => {
   const { uid = null } = req.session;
-  const {
-    id,
-    rating,
-  } = req.body;
+  const { id, rating } = req.body;
   let err = verifyMultiple(
     [id, true, isPosNum],
     [rating, true, isValidRating],
@@ -322,8 +319,29 @@ app.put('/api/product/rating', (req, res, next) => {
     DO UPDATE SET rating = $3
     RETURNING     rating;
   `, [id, uid, rating])
-      .then(data => res.json(data.rows[0]))
-      .catch(err => next({ err }));
+    .then(data => res.json(data.rows[0]))
+    .catch(err => next({ err }));
+});
+
+app.put('/api/cart/product', (req, res, next) => {
+  const { cid } = req.session;
+  const { id, qty } = req.body;
+  let err = verifyMultiple(
+    [id, true, isPosNum],
+    [qty, true, isNum],
+  );
+  if (cid == null) err = userErr('User missing cart', 400);
+  if (err) return next(err);
+  db.query(`
+    INSERT INTO   cart_products (cid, pid, qty)
+    VALUES        ($1, $2, GREATEST(qty + $3, 1))
+    ON CONFLICT
+    ON CONSTRAINT unique_cart_product
+    DO UPDATE SET qty = GREATEST(qty + $3, 1)
+    RETURNING     qty;
+  `, [cid, id, qty])
+    .then(data => res.json(data.rows[0]))
+    .catch(err => next({ err }));
 });
 
 app.use((error, req, res, next) => {
