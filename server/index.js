@@ -332,11 +332,11 @@ app.put('/api/cart/product', (req, res, next) => {
   if (cid == null) err = userErr('User missing cart', 400);
   if (err) return next(err);
   db.query(`
-    INSERT INTO   cart_products (cid, pid, qty)
-    VALUES        ($1, $2, GREATEST(qty + $3, 1))
+    INSERT INTO   cart_products AS c (cid, pid, qty)
+    VALUES        ($1, $2, GREATEST($3, 1))
     ON CONFLICT
     ON CONSTRAINT unique_cart_product
-    DO UPDATE SET qty = GREATEST(qty + $3, 1)
+    DO UPDATE SET qty = GREATEST(c.qty + $3, 1)
     RETURNING     qty;
   `, [cid, id, qty])
     .then(data => res.json(data.rows[0]))
