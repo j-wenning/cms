@@ -333,10 +333,18 @@ app.put('/api/cart/product', (req, res, next) => {
   if (err) return next(err);
   db.query(`
     INSERT INTO   cart_products AS c (cid, pid, qty)
-    VALUES        ($1, $2, GREATEST($3, 1))
+    SELECT        $1,
+                  $2,
+                  LEAST(p.qty, GREATEST($3, 0))
+    FROM          products AS p
+    WHERE         id = $2
     ON CONFLICT
     ON CONSTRAINT unique_cart_product
-    DO UPDATE SET qty = GREATEST(c.qty + $3, 1)
+    DO UPDATE SET qty = LEAST((
+      SELECT  qty
+      FROM    products
+      WHERE   id = $2
+    ), GREATEST(c.qty + $3, 0))
     RETURNING     qty;
   `, [cid, id, qty])
     .then(data => res.json(data.rows[0]))
