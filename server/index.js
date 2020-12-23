@@ -240,6 +240,27 @@ app.get('/api/products', (req, res, next) => {
     }).catch(err => next({ err }));
 });
 
+app.put('/api/product/rating', (req, res, next) => {
+  const { uid = null } = req.session;
+  const { id, rating } = req.body;
+  let err = verifyMultiple(
+    [id, true, isPosNum],
+    [rating, true, isValidRating],
+  );
+  if (uid == null) err = userErr('Unauthorized', 401);
+  if (err) return next(err);
+  db.query(`
+    INSERT INTO   ratings (pid, uid, rating)
+    VALUES        ($1, $2, $3)
+    ON CONFLICT
+    ON CONSTRAINT unique_rating
+    DO UPDATE SET rating = $3
+    RETURNING     rating;
+  `, [id, uid, rating])
+    .then(data => res.json(data.rows[0]))
+    .catch(err => next({ err }));
+});
+
 app.get('/api/product', (req, res, next) => {
   const { uid = null } = req.session;
   let { id = null } = req.query;
@@ -299,27 +320,6 @@ app.get('/api/product', (req, res, next) => {
       result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10;
       res.json(result);
     }).catch(err => next({ err }));
-});
-
-app.put('/api/product/rating', (req, res, next) => {
-  const { uid = null } = req.session;
-  const { id, rating } = req.body;
-  let err = verifyMultiple(
-    [id, true, isPosNum],
-    [rating, true, isValidRating],
-  );
-  if (uid == null) err = userErr('Unauthorized', 401);
-  if (err) return next(err);
-  db.query(`
-    INSERT INTO   ratings (pid, uid, rating)
-    VALUES        ($1, $2, $3)
-    ON CONFLICT
-    ON CONSTRAINT unique_rating
-    DO UPDATE SET rating = $3
-    RETURNING     rating;
-  `, [id, uid, rating])
-    .then(data => res.json(data.rows[0]))
-    .catch(err => next({ err }));
 });
 
 app.put('/api/cart/product', (req, res, next) => {
