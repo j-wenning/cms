@@ -351,6 +351,23 @@ app.put('/api/cart/product', (req, res, next) => {
     .catch(err => next({ err }));
 });
 
+app.get('/api/cart', (req, res, next) => {
+  const { cid } = req.session;
+  if (cid == null) return next(userErr('User missing cart', 400));
+  db.query(`
+    SELECT      ${productSelect('p')}
+    FROM        cart_products
+    LEFT JOIN   products AS p ON(p.id = pid)
+    WHERE       cid = $1;
+  `, [cid])
+    .then(data => res.json(data.rows.map(product => {
+      const { price, discount } = product;
+      product.price = (price - discount) / 100;
+      delete product.discount;
+      return product;
+    }))).catch(err => next({ err }));
+});
+
 app.use((error, req, res, next) => {
   const {
     err: err = null,
