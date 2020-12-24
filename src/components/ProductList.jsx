@@ -37,16 +37,16 @@ class ProductList extends React.Component {
   }
 
   doFetch() {
-    (async () => {
-      const query = !this.props.noQuery ? window.location.search : '';
-      const res = await fetch('/api/products' + query);
-      const data = await res.json();
-      if (res.ok) {
+    const query = !this.props.noQuery ? window.location.search : '';
+    fetch('/api/products' + query)
+      .then(res => {
+        const json = res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
         const { meta: { search, offset, limit, totalResults }, products } = data;
         this.setState({ search, offset, limit, totalResults, products });
-      }
-      else console.error(data);
-    })();
+      }).catch(err => console.error(err));
   }
 
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
