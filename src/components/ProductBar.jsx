@@ -43,18 +43,17 @@ export default class ProductBar extends React.Component {
     let { location = '', query = '' } = this.props;
     const signal = this.controller.signal;
     query = buildQuery(query);
-    (async () => {
-      try {
-        const res = await fetch('/api/products' + location + query, { signal });
-        const data = await res.json();
-        if (res.ok) {
-          const { products } = data;
-          const fetchCB = this.props.fetchCB;
-          this.setState({ products });
-          if (fetchCB) fetchCB(products);
-        } else console.error(data);
-      } catch (err) {};
-    })();
+    fetch('/api/products' + location + query, { signal })
+      .then(res => {
+        const json = res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
+        const { products } = data;
+        const fetchCB = this.props.fetchCB;
+        this.setState({ products });
+        if (fetchCB) fetchCB(products);
+      }).catch(err => console.error(err));
   }
 
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
