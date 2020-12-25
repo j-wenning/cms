@@ -26,16 +26,30 @@ $product-description-line-max: 10 !default;
 
     .product-modal-content { max-width: 90%; }
 
+    .product-modal-img,
+    .product-preview,
+    .product-thumbnail {
+      object-fit: contain;
+    }
+
     .product-modal-img {
       width: 100%;
       max-height: 85vh;
-      object-fit: contain;
     }
 
     .product-preview {
       height: 300px;
       width: 100%;
-      object-fit: contain;
+    }
+
+    .product-thumbnail {
+      height: 100px;
+      width: 100px;
+    }
+
+    .product-qty-input {
+      width: 75px !important;
+      flex: unset !important;
     }
 
     .product-markdown img { max-width: 100%; }
