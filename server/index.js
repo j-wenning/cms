@@ -332,18 +332,21 @@ app.put('/api/cart/product', (req, res, next) => {
   if (cid == null) err = userErr('User missing cart', 400);
   if (err) return next(err);
   db.query(`
+    WITH products_cte AS (
+      SELECT  qty
+      FROM    products
+      WHERE   id = $2
+    )
     INSERT INTO   cart_products AS c (cid, pid, qty)
     SELECT        $1,
                   $2,
                   LEAST(p.qty, GREATEST($3, 0))
-    FROM          products AS p
-    WHERE         id = $2
+    FROM          products_cte AS p
     ON CONFLICT
     ON CONSTRAINT unique_cart_product
     DO UPDATE SET qty = LEAST((
       SELECT  qty
-      FROM    products
-      WHERE   id = $2
+      FROM    products_cte
     ), GREATEST(c.qty + $3, 0))
     RETURNING     qty;
   `, [cid, id, qty])
@@ -355,7 +358,8 @@ app.get('/api/cart', (req, res, next) => {
   const { cid } = req.session;
   if (cid == null) return next(userErr('User missing cart', 400));
   db.query(`
-    SELECT      ${productSelect('p')}
+    SELECT      ${productSelect('p')},
+                p.qty
     FROM        cart_products
     LEFT JOIN   products AS p ON(p.id = pid)
     WHERE       cid = $1;
