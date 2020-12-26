@@ -48,8 +48,15 @@ $product-description-line-max: 10 !default;
     }
 
     .product-qty-input {
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
       width: 75px !important;
       flex: unset !important;
+      -moz-appearance:textfield;
     }
 
     .product-markdown img { max-width: 100%; }
