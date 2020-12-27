@@ -14,7 +14,7 @@ export default class RatingBar extends React.Component {
         body: JSON.stringify({ rating, id: this.props.id })
       }).then(res => res.json())
         .then(data => this.setState({ rating: data.rating }))
-        .catch(err => console.error(err));
+        .catch(err => (async () => console.error(await err))());
     }
   }
 
