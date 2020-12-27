@@ -46,7 +46,7 @@ class ProductList extends React.Component {
       }).then(data => {
         const { meta: { search, offset, limit, totalResults }, products } = data;
         this.setState({ search, offset, limit, totalResults, products });
-      }).catch(err => console.error(err));
+      }).catch(err => (async () => console.error(await err))());
   }
 
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
