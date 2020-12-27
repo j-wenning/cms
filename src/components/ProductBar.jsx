@@ -53,7 +53,7 @@ export default class ProductBar extends React.Component {
         const fetchCB = this.props.fetchCB;
         this.setState({ products });
         if (fetchCB) fetchCB(products);
-      }).catch(err => console.error(err));
+      }).catch(err => (async () => console.error(await err))());
   }
 
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
