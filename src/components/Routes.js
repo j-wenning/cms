@@ -1,6 +1,7 @@
 import Home from './Home';
 import Search from './Search';
 import Product from './Product';
+import Cart from './Cart';
 import _404 from './404';
 
 const routes = [
@@ -20,10 +21,15 @@ const routes = [
     routes: []
   },
   {
+    path: '/cart',
+    component: Cart,
+    routes: []
+  },
+  {
     path: '*',
     component: _404,
     routes: []
-  }
+  },
 ];
 
 Object.freeze(routes);
