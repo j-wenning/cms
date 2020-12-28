@@ -351,6 +351,22 @@ app.put('/api/cart/product', (req, res, next) => {
     .catch(err => next({ err }));
 });
 
+app.delete('/api/cart/product', (req, res, next) => {
+  const { cid } = req.session;
+  const { id } = req.body;
+  let err = verifyMultiple(
+    [id, true, isPosNum],
+  );
+  if (cid == null) err = userErr('User missing cart', 400);
+  if (err) return next(err);
+  db.query(`
+    DELETE FROM cart_products
+    WHERE       cid = $1 AND pid = $2;
+  `, [cid, id])
+    .then(() => res.json({}))
+    .catch(err => next({ err }));
+});
+
 app.get('/api/cart', (req, res, next) => {
   const { cid } = req.session;
   if (cid == null) return next(userErr('User missing cart', 400));
