@@ -36,26 +36,37 @@ class Product extends React.Component {
     if (isNaN(parseInt(id))) return this.props.history.push('/');
     if (this.state.id === id) return;
     this.setState({ id });
-    (async () => {
-      const res = await fetch('/api/product' + query);
-      const data = await res.json();
-      if (res.ok) {
+    fetch('/api/product' + query)
+      .then(res => {
+        const json = res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
         const {
           images, name, description, information, price, discount,
-          rating,
+          rating, qty,
           'shipping_methods': shippingMethods,
           'user_rating': userRating,
           'rating_count': ratingCount,
          } = data;
         this.setState({
           name, description, information, price, discount, rating, userRating,
-          ratingCount,
+          ratingCount, qty,
           images: images || [{}],
           shippingMethods: shippingMethods || [],
           shippingMethod: shippingMethods?.[0],
         });
-      } else console.error(data);
-    })();
+      }).catch(err => (async () => console.error(await err))());
+  }
+
+  doCartFetch() {
+    const { id } = this.state;
+    fetch('/api/cart/product', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, qty: 1 }),
+    }).then(res => { if (!res.ok) throw res.json(); })
+    .catch(err => (async () => console.error(await err))());
   }
 
   componentDidMount() { this.doFetch(); }
@@ -66,7 +77,7 @@ class Product extends React.Component {
     const {
       id, images, name, description, information, price, discount, shippingMethod,
       shippingMethods, modalSrc, modalAlt, recommended, rating, userRating,
-      ratingCount,
+      ratingCount, qty,
     } = this.state;
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
@@ -96,7 +107,37 @@ class Product extends React.Component {
             </div>
           </div>
         </div>
-        <div className='container-fluid'>
+        <div
+          className='modal fade'
+          id='cart-modal'
+          tabIndex='-1'
+          aria-labelledby='cart-modal-label'
+          aria-hidden='true'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
+              <div className='modal-header'>
+                <h5 className='modal-title' id='cart-modal-label'>Product added to cart</h5>
+                <button type='button' className='close' data-dismiss='modal' aria-label='Close'>
+                  <span aria-hidden='true'>&times;</span>
+                </button>
+              </div>
+              <div className='modal-footer justify-content-center justify-content-sm-end'>
+                <Link
+                  to=''
+                  onClick={() => this.props.history.goBack()}
+                  className='btn btn-secondary'
+                  data-dismiss='modal'
+                  type='button'>Back to shopping</Link>
+                <Link
+                  to=''
+                  onClick={() => this.props.history.push('/cart')}
+                  className='btn btn-primary'
+                  data-dismiss='modal'>View cart</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className='container'>
           <div className='row'>
             <div className='container col-12 col-xl-9'>
               <div className='row'>
@@ -199,24 +240,38 @@ class Product extends React.Component {
                 : <p>No shipping methods available.</p>
               }
               <div>
-                <Link to='/' className='btn btn-primary mr-2'>Buy now</Link>
-                <Link to='/' className='btn btn-secondary'>Add to cart</Link>
+                {
+                  qty <= 0 &&
+                  <p className='mb-1 text-danger'>Out of stock</p>
+                }
+                <Link
+                  to='/checkout'
+                  onClick={() => this.doCartFetch()}
+                  tabIndex={qty <= 0 ? -1 : 0}
+                  aria-disabled={qty <= 0}
+                  className={`btn btn-primary mr-2 ${qty <= 0 && 'disabled'}`}
+                  >Buy now</Link>
+                <button
+                  disabled={qty <= 0}
+                  onClick={() => this.doCartFetch()}
+                  data-toggle='modal'
+                  data-target='#cart-modal'
+                  className='btn btn-primary mr-2'
+                  type='button'>Add to cart</button>
               </div>
             </div>
           </div>
-          {
-            recommended &&
-            <div className='row'>
-              <div className='jumbotron col-12'>
-                <h4 className='mb-5'>Related products</h4>
-                {
-                  id != null &&
-                  <ProductBar location='/related' query={{ id }} fetchCB={recommended => this.setRecommended(recommended)} />
-                }
-              </div>
-            </div>
-          }
         </div>
+        {
+          recommended &&
+          <div className='jumbotron col-12'>
+            <h4 className='mb-5'>Related products</h4>
+            {
+              id != null &&
+              <ProductBar location='/related' query={{ id }} fetchCB={recommended => this.setRecommended(recommended)} />
+            }
+          </div>
+        }
       </main>
     );
   }
