@@ -122,6 +122,7 @@ class Product extends React.Component {
                 </button>
               </div>
               <div className='modal-footer justify-content-center justify-content-sm-end'>
+                {/* The following is a workaround since bootstrap modals interact unexpectedly with react router links. */}
                 <Link
                   to=''
                   onClick={() => this.props.history.goBack()}
