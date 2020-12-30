@@ -16,13 +16,9 @@ const redisClient = redis.createClient();
 const app = express();
 const db = new Pool({ connectionString: dbUrl });
 const productLimit = 25;
-const productSelect = (alias = '') => {
+const prodImgSelect = (alias = '') => {
   if (alias) alias += '.';
   return `
-    ${alias}id,
-    ${alias}name,
-    ${alias}price,
-    ${alias}discount,
     (
       SELECT    JSON_BUILD_OBJECT(
                   'url', i.url,
@@ -148,13 +144,21 @@ app.get('/api/products/related', (req, res, next) => {
   id = parseInt(id);
   db.query(`
     WITH products_cte AS (
-      SELECT    ${productSelect('p')},
+      SELECT    p.id,
+                p.name,
+                p.price,
+                p.discount,
+                ${prodImgSelect('p')},
                 ARRAY_AGG(t.name) AS tags
       FROM      products  AS p
       LEFT JOIN tags      AS t ON (t.pid = p.id)
       GROUP BY  p.id
     )
-    SELECT  ${productSelect()}
+    SELECT  id,
+            name,
+            price,
+            discount,
+            ${prodImgSelect()}
     FROM    products_cte
     WHERE   tags && (
               SELECT tags
@@ -192,7 +196,11 @@ app.get('/api/products', (req, res, next) => {
   if (min) min = parseInt(min) * 100;
   if (max) max = parseInt(max) * 100;
   db.query(`
-    SELECT    ${productSelect('p')},
+    SELECT    p.id,
+              p.name,
+              p.price,
+              p.discount,
+              ${prodImgSelect('p')},
               (
                 SELECT    p.description
                 WHERE     $1 = FALSE
@@ -361,18 +369,25 @@ app.delete('/api/cart/product', (req, res, next) => {
   if (err) return next(err);
   db.query(`
     DELETE FROM cart_products
-    WHERE       cid = $1 AND pid = $2;
+    WHERE       cid = $1 AND pid = $2
+    RETURNING   pid;
   `, [cid, id])
-    .then(() => res.json({}))
-    .catch(err => next({ err }));
+    .then(data => {
+      const { pid: id } = data.rows[0];
+      res.json({ id });
+    }).catch(err => next({ err }));
 });
 
 app.get('/api/cart', (req, res, next) => {
   const { cid } = req.session;
   if (cid == null) return next(userErr('User missing cart', 400));
   db.query(`
-    SELECT      ${productSelect('p')},
-                cp.qty
+    SELECT      cp.qty,
+                p.id,
+                p.name,
+                p.price,
+                p.discount,
+                ${prodImgSelect('p')}
     FROM        cart_products AS cp
     LEFT JOIN   products      AS p  ON(p.id = pid)
     WHERE       cid = $1;
