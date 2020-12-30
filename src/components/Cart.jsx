@@ -8,7 +8,7 @@ export default class Cart extends React.Component {
     this.state = { products: [] };
   }
 
-  removeProduct(index, id) {
+  removeProduct(id) {
     fetch('/api/cart/product', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -17,10 +17,11 @@ export default class Cart extends React.Component {
       const json = res.json();
       if (res.ok) return json;
       throw json;
-    }).then(() => this.setState(state => {
-      state.products.splice(index, 1);
-      return state;
-    })).catch(err => (async () => console.error(await err))());
+    }).then(data => {
+      const { id } = data;
+      const products = this.state.products.filter(product => product.id !== id);
+      this.setState({ products });
+    }).catch(err => (async () => console.error(await err))());
   }
 
   updateQuantity(index, val) {
@@ -90,7 +91,7 @@ export default class Cart extends React.Component {
                           </div>
                           <div className='col-12 col-md-4 text-right text-md-left'>
                             <button
-                              onClick={() => this.removeProduct(index, id)}
+                              onClick={() => this.removeProduct(id)}
                               className='btn btn-danger mb-3'
                               type='button'>Remove</button>
                             <div className='input-group mb-3 justify-content-end justify-content-md-start'>
