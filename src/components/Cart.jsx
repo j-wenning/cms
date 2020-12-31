@@ -67,7 +67,7 @@ export default class Cart extends React.Component {
     return (
       <main>
         <div className='container'>
-          <h1 className='mt-5'>Review your cart</h1>
+          <h1 className='mt-5 mb-4'>Review Your Cart</h1>
           {
             products.length === 0
               ? <p>Your cart is empty.</p>
