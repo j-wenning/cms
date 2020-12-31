@@ -266,7 +266,7 @@ class Product extends React.Component {
         {
           recommended &&
           <div className='jumbotron col-12'>
-            <h4 className='mb-5'>Related products</h4>
+            <h4 className='mb-5'>Related Products</h4>
             {
               id != null &&
               <ProductBar location='/related' query={{ id }} fetchCB={recommended => this.setRecommended(recommended)} />
