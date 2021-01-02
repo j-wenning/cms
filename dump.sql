@@ -21,6 +21,52 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: addresses; Type: TABLE; Schema: public; Owner: cms
+--
+
+CREATE TABLE public.addresses (
+    id integer NOT NULL,
+    uid integer,
+    country character varying(255) NOT NULL,
+    region character varying(255) NOT NULL,
+    city character varying(255) NOT NULL,
+    address_1 character varying(255) NOT NULL,
+    address_2 character varying(150),
+    postal_code character varying(15) NOT NULL,
+    CONSTRAINT valid_address_1 CHECK (((address_1)::text !~ '([^w'']|_)'::text)),
+    CONSTRAINT valid_address_2 CHECK (((address_2)::text !~ '([^w'']|_)'::text)),
+    CONSTRAINT valid_city CHECK (((city)::text !~ '[^w'']|d|_'::text)),
+    CONSTRAINT valid_country CHECK (((country)::text !~ '[^w'']|d|_'::text)),
+    CONSTRAINT valid_postal_code CHECK (((address_2)::text !~ '([^w''-]|_)'::text)),
+    CONSTRAINT valid_region CHECK (((region)::text !~ '[^w'']|d|_'::text))
+);
+
+
+ALTER TABLE public.addresses OWNER TO cms;
+
+--
+-- Name: addresses_id_seq; Type: SEQUENCE; Schema: public; Owner: cms
+--
+
+CREATE SEQUENCE public.addresses_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.addresses_id_seq OWNER TO cms;
+
+--
+-- Name: addresses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cms
+--
+
+ALTER SEQUENCE public.addresses_id_seq OWNED BY public.addresses.id;
+
+
+--
 -- Name: cart_products; Type: TABLE; Schema: public; Owner: cms
 --
 
@@ -127,6 +173,46 @@ ALTER TABLE public.images_id_seq OWNER TO cms;
 --
 
 ALTER SEQUENCE public.images_id_seq OWNED BY public.images.id;
+
+
+--
+-- Name: payment_methods; Type: TABLE; Schema: public; Owner: cms
+--
+
+CREATE TABLE public.payment_methods (
+    id integer NOT NULL,
+    uid integer,
+    card_number integer,
+    security_code smallint,
+    name character varying(255),
+    expiry date,
+    CONSTRAINT valid_date CHECK ((expiry > CURRENT_DATE)),
+    CONSTRAINT valid_name CHECK (((name)::text !~ '([^w'']|d|_)'::text))
+);
+
+
+ALTER TABLE public.payment_methods OWNER TO cms;
+
+--
+-- Name: payment_methods_id_seq; Type: SEQUENCE; Schema: public; Owner: cms
+--
+
+CREATE SEQUENCE public.payment_methods_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.payment_methods_id_seq OWNER TO cms;
+
+--
+-- Name: payment_methods_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cms
+--
+
+ALTER SEQUENCE public.payment_methods_id_seq OWNED BY public.payment_methods.id;
 
 
 --
@@ -346,6 +432,13 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
+-- Name: addresses id; Type: DEFAULT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.addresses ALTER COLUMN id SET DEFAULT nextval('public.addresses_id_seq'::regclass);
+
+
+--
 -- Name: cart_products id; Type: DEFAULT; Schema: public; Owner: cms
 --
 
@@ -364,6 +457,13 @@ ALTER TABLE ONLY public.carts ALTER COLUMN id SET DEFAULT nextval('public.carts_
 --
 
 ALTER TABLE ONLY public.images ALTER COLUMN id SET DEFAULT nextval('public.images_id_seq'::regclass);
+
+
+--
+-- Name: payment_methods id; Type: DEFAULT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.payment_methods ALTER COLUMN id SET DEFAULT nextval('public.payment_methods_id_seq'::regclass);
 
 
 --
@@ -409,6 +509,14 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
+-- Data for Name: addresses; Type: TABLE DATA; Schema: public; Owner: cms
+--
+
+COPY public.addresses (id, uid, country, region, city, address_1, address_2, postal_code) FROM stdin;
+\.
+
+
+--
 -- Data for Name: cart_products; Type: TABLE DATA; Schema: public; Owner: cms
 --
 
@@ -440,17 +548,25 @@ COPY public.images (id, pid, url, alt, img_order) FROM stdin;
 
 
 --
+-- Data for Name: payment_methods; Type: TABLE DATA; Schema: public; Owner: cms
+--
+
+COPY public.payment_methods (id, uid, card_number, security_code, name, expiry) FROM stdin;
+\.
+
+
+--
 -- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: cms
 --
 
 COPY public.products (id, name, description, information, price, discount, qty) FROM stdin;
-2	discountedproduct	some kind of description	\N	600	100	0
-3	featuredproduct	a fancy description or something thats kinda long and if i add more it truncates if much more is added to it and after some point it just gets too long for the card to display	\N	3000	0	0
-4	featureddiscountedproduct	a short description	\N	4000	1000	0
-5	longnameproduct	MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM	\N	2000	301	0
-6	anotherlongnameproduct	WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW	\N	500	100	0
+1	product	a description in the description area	- test markdown\n### that does whatever it likes and stuff\n> 1. bc you **know** how *it* be\n![](/images/test.png)	1999	0	5
+2	discountedproduct	some kind of description	\N	600	100	7
+3	featuredproduct	a fancy description or something thats kinda long and if i add more it truncates if much more is added to it and after some point it just gets too long for the card to display	\N	3000	0	10
+4	featureddiscountedproduct	a short description	\N	4000	1000	3
+5	longnameproduct	MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM	\N	2000	301	6
+6	anotherlongnameproduct	WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW	\N	500	100	1
 7	a free thing	and a description to match	\N	0	0	0
-1	product	a description in the description area	- test markdown\n### that does whatever it likes and stuff\n> 1. bc you **know** how *it* be\n![](/images/test.png)	1999	0	0
 \.
 
 
@@ -514,6 +630,13 @@ COPY public.users (id) FROM stdin;
 
 
 --
+-- Name: addresses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
+--
+
+SELECT pg_catalog.setval('public.addresses_id_seq', 1, false);
+
+
+--
 -- Name: cart_products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
@@ -532,6 +655,13 @@ SELECT pg_catalog.setval('public.carts_id_seq', 1, false);
 --
 
 SELECT pg_catalog.setval('public.images_id_seq', 7, true);
+
+
+--
+-- Name: payment_methods_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
+--
+
+SELECT pg_catalog.setval('public.payment_methods_id_seq', 1, false);
 
 
 --
@@ -761,6 +891,21 @@ ALTER TABLE ONLY public.carts
 
 
 --
--- PostgreSQL database dump complete
+-- Name: addresses fk_uid; Type: FK CONSTRAINT; Schema: public; Owner: cms
 --
 
+ALTER TABLE ONLY public.addresses
+    ADD CONSTRAINT fk_uid FOREIGN KEY (uid) REFERENCES public.users(id);
+
+
+--
+-- Name: payment_methods fk_uid; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.payment_methods
+    ADD CONSTRAINT fk_uid FOREIGN KEY (uid) REFERENCES public.users(id);
+
+
+--
+-- PostgreSQL database dump complete
+--
