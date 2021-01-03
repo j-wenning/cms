@@ -236,10 +236,10 @@ app.get('/api/products', (req, res, next) => {
           search,
           limit: productLimit,
           offset,
-          totalResults: data.rows[0]?.['total_results']
+          totalResults: data.rows[0]?.total_results
         },
         products: data.rows.map(row => {
-          delete row['total_results'];
+          delete row.total_results;
           row.price /= 100;
           row.discount /= 100;
           return row;
@@ -398,6 +398,38 @@ app.get('/api/cart', (req, res, next) => {
       delete product.discount;
       return product;
     }))).catch(err => next({ err }));
+});
+
+app.get('/api/user/checkout', (req, res, next) => {
+  const { uid } = req.session;
+  if (uid == null) err = userErr('Unauthorized', 401);
+  db.query(`
+    SELECT  (
+              SELECT  ARRAY_AGG(
+                        JSON_BUILD_OBJECT(
+                          'id', id,
+                          'address_1', address_1
+                        )
+                      )
+              FROM    addresses
+              WHERE   uid = $1
+            ) AS addresses,
+            (
+              SELECT  ARRAY_AGG(
+                        JSON_BUILD_OBJECT(
+                          'id', id,
+                          'card_number', card_number,
+                          'name', name
+                        )
+                      )
+              FROM    payment_methods_view
+              WHERE   uid = $1
+            ) AS payment_methods
+  `, [uid])
+    .then(data => {
+      let { addresses, payment_methods } = data.rows[0];
+      res.json( { addresses, payment_methods });
+    }).catch(err => next({ err }));
 });
 
 app.use((error, req, res, next) => {
