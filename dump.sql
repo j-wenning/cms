@@ -33,12 +33,12 @@ CREATE TABLE public.addresses (
     address_1 character varying(255) NOT NULL,
     address_2 character varying(150),
     postal_code character varying(15) NOT NULL,
-    CONSTRAINT valid_address_1 CHECK (((address_1)::text !~ '([^w'']|_)'::text)),
-    CONSTRAINT valid_address_2 CHECK (((address_2)::text !~ '([^w'']|_)'::text)),
-    CONSTRAINT valid_city CHECK (((city)::text !~ '[^w'']|d|_'::text)),
-    CONSTRAINT valid_country CHECK (((country)::text !~ '[^w'']|d|_'::text)),
-    CONSTRAINT valid_postal_code CHECK (((address_2)::text !~ '([^w''-]|_)'::text)),
-    CONSTRAINT valid_region CHECK (((region)::text !~ '[^w'']|d|_'::text))
+    CONSTRAINT valid_address_1 CHECK (((address_1)::text !~ '([^\w'' ]|_)'::text)),
+    CONSTRAINT valid_address_2 CHECK (((address_2)::text !~ '([^\w'' ]|_)'::text)),
+    CONSTRAINT valid_city CHECK (((city)::text !~ '[^\w'' ]|\d|_'::text)),
+    CONSTRAINT valid_country CHECK (((country)::text !~ '[^\w'' ]|\d|_'::text)),
+    CONSTRAINT valid_postal_code CHECK (((address_2)::text !~ '([^\w''- ]|_)'::text)),
+    CONSTRAINT valid_region CHECK (((region)::text !~ '[^\w'' ]|\d|_'::text))
 );
 
 
@@ -186,8 +186,8 @@ CREATE TABLE public.payment_methods (
     security_code smallint,
     name character varying(255),
     expiry date,
-    CONSTRAINT valid_date CHECK ((expiry > CURRENT_DATE)),
-    CONSTRAINT valid_name CHECK (((name)::text !~ '([^w'']|d|_)'::text))
+    CONSTRAINT valid_date CHECK (((date_part('month'::text, expiry) >= date_part('month'::text, CURRENT_DATE)) AND (date_part('year'::text, expiry) >= date_part('year'::text, CURRENT_DATE)))),
+    CONSTRAINT valid_name CHECK (((name)::text !~ '([^\w'' ]|\d|_)'::text))
 );
 
 
@@ -214,6 +214,22 @@ ALTER TABLE public.payment_methods_id_seq OWNER TO cms;
 
 ALTER SEQUENCE public.payment_methods_id_seq OWNED BY public.payment_methods.id;
 
+
+--
+-- Name: payment_methods_view; Type: VIEW; Schema: public; Owner: cms
+--
+
+CREATE VIEW public.payment_methods_view AS
+ SELECT payment_methods.id,
+    payment_methods.uid,
+    "overlay"((payment_methods.card_number)::text, repeat('*'::text, (char_length((payment_methods.card_number)::text) - 4)), 1, (char_length((payment_methods.card_number)::text) - 4)) AS card_number,
+    (regexp_matches(rtrim((payment_methods.name)::text, ' '::text), '[^\s]*$'::text))[1] AS name,
+    payment_methods.expiry
+   FROM public.payment_methods
+  ORDER BY payment_methods.id;
+
+
+ALTER TABLE public.payment_methods_view OWNER TO cms;
 
 --
 -- Name: products; Type: TABLE; Schema: public; Owner: cms
@@ -513,6 +529,8 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.addresses (id, uid, country, region, city, address_1, address_2, postal_code) FROM stdin;
+1	1	USA	CA	Irvine	39 Thicket	\N	92614
+2	1	USA	CA	Santa Ana	17351 Keegan Way	\N	92685
 \.
 
 
@@ -529,6 +547,7 @@ COPY public.cart_products (id, cid, pid, qty) FROM stdin;
 --
 
 COPY public.carts (id, uid, checked_out) FROM stdin;
+1	1	f
 \.
 
 
@@ -552,6 +571,8 @@ COPY public.images (id, pid, url, alt, img_order) FROM stdin;
 --
 
 COPY public.payment_methods (id, uid, card_number, security_code, name, expiry) FROM stdin;
+1	1	123456789	123	last and first	2021-01-02
+2	1	987654321	321	first and last	2023-07-31
 \.
 
 
@@ -633,7 +654,7 @@ COPY public.users (id) FROM stdin;
 -- Name: addresses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
-SELECT pg_catalog.setval('public.addresses_id_seq', 1, false);
+SELECT pg_catalog.setval('public.addresses_id_seq', 2, true);
 
 
 --
@@ -647,7 +668,7 @@ SELECT pg_catalog.setval('public.cart_products_id_seq', 1, false);
 -- Name: carts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
-SELECT pg_catalog.setval('public.carts_id_seq', 1, false);
+SELECT pg_catalog.setval('public.carts_id_seq', 1, true);
 
 
 --
@@ -661,7 +682,7 @@ SELECT pg_catalog.setval('public.images_id_seq', 7, true);
 -- Name: payment_methods_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
-SELECT pg_catalog.setval('public.payment_methods_id_seq', 1, false);
+SELECT pg_catalog.setval('public.payment_methods_id_seq', 2, true);
 
 
 --
@@ -771,6 +792,14 @@ ALTER TABLE ONLY public.tags
 
 
 --
+-- Name: addresses unique_address; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.addresses
+    ADD CONSTRAINT unique_address UNIQUE (uid, country, region, city, address_1, address_2, postal_code);
+
+
+--
 -- Name: cart_products unique_cart_product; Type: CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -784,6 +813,14 @@ ALTER TABLE ONLY public.cart_products
 
 ALTER TABLE ONLY public.shipping_methods
     ADD CONSTRAINT unique_method UNIQUE (name);
+
+
+--
+-- Name: payment_methods unique_payment_method; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.payment_methods
+    ADD CONSTRAINT unique_payment_method UNIQUE (card_number, security_code, name, expiry);
 
 
 --
@@ -909,3 +946,4 @@ ALTER TABLE ONLY public.payment_methods
 --
 -- PostgreSQL database dump complete
 --
+
