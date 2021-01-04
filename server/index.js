@@ -408,7 +408,10 @@ app.get('/api/user/checkout', (req, res, next) => {
               SELECT  ARRAY_AGG(
                         JSON_BUILD_OBJECT(
                           'id', id,
-                          'address_1', address_1
+                          'region', region,
+                          'city', city,
+                          'address_1', address_1,
+                          'postal_code', postal_code
                         )
                       )
               FROM    addresses
@@ -427,7 +430,7 @@ app.get('/api/user/checkout', (req, res, next) => {
             ) AS payment_methods
   `, [uid])
     .then(data => {
-      let { addresses, payment_methods } = data.rows[0];
+      const { addresses, payment_methods } = data.rows[0];
       res.json( { addresses, payment_methods });
     }).catch(err => next({ err }));
 });
