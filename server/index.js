@@ -51,10 +51,17 @@ const verifyMultiple = (...vals) => {
   return err;
 };
 const isNum = val => isNaN(parseInt(val)) ? 'number' : null;
-
 const isPosNum = val => isNum(val) || val < 0 ? 'positive number' : null;
-
 const isValidRating = val => val < 1 || val > 10 ? 'valid rating' : null;
+const formatKeys = obj => {
+  const result = Array.isArray(obj) ? [] : {};
+  if (typeof obj !== typeof Object()) return obj;
+  for (const key in obj) {
+    const newKey = key.replace(/(-|_)\w/g, val => val[1].toLocaleUpperCase()).replace(/_/g, '')
+    result[newKey] = formatKeys(obj[key]);
+  }
+  return result;
+}
 
 db.connect();
 
@@ -407,11 +414,11 @@ app.get('/api/user/checkout', (req, res, next) => {
     SELECT  (
               SELECT  ARRAY_AGG(
                         JSON_BUILD_OBJECT(
-                          'id', id,
-                          'region', region,
-                          'city', city,
-                          'address_1', address_1,
-                          'postal_code', postal_code
+                          'id',           id,
+                          'region',       region,
+                          'city',         city,
+                          'address_1',    address_1,
+                          'postal_code',  postal_code
                         )
                       )
               FROM    addresses
@@ -420,19 +427,17 @@ app.get('/api/user/checkout', (req, res, next) => {
             (
               SELECT  ARRAY_AGG(
                         JSON_BUILD_OBJECT(
-                          'id', id,
-                          'card_number', card_number,
-                          'name', name
+                          'id',           id,
+                          'card_number',  card_number,
+                          'name',         name
                         )
                       )
               FROM    payment_methods_view
               WHERE   uid = $1
             ) AS payment_methods
   `, [uid])
-    .then(data => {
-      const { addresses, payment_methods } = data.rows[0];
-      res.json( { addresses, payment_methods });
-    }).catch(err => next({ err }));
+    .then(data => res.json({ ...formatKeys(data.rows[0]) }))
+    .catch(err => next({ err }));
 });
 
 app.use((error, req, res, next) => {
