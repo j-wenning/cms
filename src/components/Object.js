@@ -1,15 +1,13 @@
 const stringifyRecurse = obj => {
-  const result = typeof obj === typeof Object() ? {} : [];
+  const result = Array.isArray(obj) ? [] : {};
   for (const key in obj) {
     result[key] = (() => {
       switch(typeof obj[key]) {
         case typeof Object():
-        /* eslint-disable-next-line no-array-constructor, no-fallthrough */
-        case typeof Array():
           return stringifyRecurse(obj[key]);
-          /* eslint-disable-next-line no-new-func */
-          case typeof Function():
-            return obj[key].toString();
+        /* eslint-disable-next-line no-new-func */
+        case typeof Function():
+          return obj[key].toString();
         default:
           return obj[key];
       }
@@ -27,8 +25,6 @@ const isEqualSwitch = (key1, key2) => {
   let _key2 = key2;
   switch(typeof _key1) {
     case typeof Object():
-    /* eslint-disable-next-line no-array-constructor, no-fallthrough */
-    case typeof Array():
       return isEqual(_key1, _key2);
     /* eslint-disable-next-line no-new-func */
     case typeof Function():
