@@ -60,7 +60,7 @@ const isStrOfLength = (val, length = 1) => isStr(val) && val.length !== length ?
 const isStrOfLengths = (val, lengths = [1]) => isStr(val) && !lengths.includes(val.length) ? 'string of lengths ' + lengths : null;
 const formatKeys = obj => {
   const result = Array.isArray(obj) ? [] : {};
-  if (typeof obj !== typeof Object()) return obj;
+  if (obj == null || typeof obj !== typeof Object()) return obj;
   for (const key in obj) {
     const newKey = key.replace(/(-|_)\w/g, val => val[1].toLocaleUpperCase()).replace(/_/g, '')
     result[newKey] = formatKeys(obj[key]);
