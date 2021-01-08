@@ -33,11 +33,11 @@ const prodImgSelect = (alias = '') => {
   `;
 };
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
-const verify = (val, required = true, expected = null) => {
+const verify = (val, required = true, expected = null, ...args) => {
   if (!required && val == null) return null;
   if (required && val == null) return userErr('Missing required value');
   if (expected) {
-    const err = expected(val);
+    const err = expected(val, ...args);
     if (err) return userErr(`Expected ${err} but received ${val}`);
   }
   return null;
@@ -53,6 +53,11 @@ const verifyMultiple = (...vals) => {
 const isNum = val => isNaN(parseInt(val)) ? 'number' : null;
 const isPosNum = val => isNum(val) || val < 0 ? 'positive number' : null;
 const isValidRating = val => val < 1 || val > 10 ? 'valid rating' : null;
+const isStr = val => typeof val === typeof String() ? null : 'string';
+const isStrOfMinLength = (val, min = 1) => isStr(val) && val.length < min ? 'string of min length ' + min : null;
+const isStrOfMaxLength = (val, max = 1) => isStr(val) && val.length > max ? 'string of max length ' + max : null;
+const isStrOfLength = (val, length = 1) => isStr(val) && val.length !== length ? 'string of length ' + lengths : null;
+const isStrOfLengths = (val, lengths = [1]) => isStr(val) && !lengths.includes(val.length) ? 'string of lengths ' + lengths : null;
 const formatKeys = obj => {
   const result = Array.isArray(obj) ? [] : {};
   if (typeof obj !== typeof Object()) return obj;
@@ -61,7 +66,7 @@ const formatKeys = obj => {
     result[newKey] = formatKeys(obj[key]);
   }
   return result;
-}
+};
 
 db.connect();
 
@@ -409,7 +414,7 @@ app.get('/api/cart', (req, res, next) => {
 
 app.get('/api/user/checkout', (req, res, next) => {
   const { uid } = req.session;
-  if (uid == null) err = userErr('Unauthorized', 401);
+  if (uid == null) return next(userErr('Unauthorized', 401));
   db.query(`
     SELECT  (
               SELECT  ARRAY_AGG(
@@ -437,6 +442,36 @@ app.get('/api/user/checkout', (req, res, next) => {
             ) AS payment_methods
   `, [uid])
     .then(data => res.json({ ...formatKeys(data.rows[0]) }))
+    .catch(err => next({ err }));
+});
+
+app.post('/api/user/address', (req, res, next) => {
+  const { uid } = req.session;
+  const {
+    address1,
+    address2 = '',
+    city,
+    region,
+    country,
+    postalCode
+  } = req.body;
+  let err = verifyMultiple(
+    [address1, true, isStrOfMinLength],
+    [address2, false, isStr],
+    [city, true, isStrOfMinLength],
+    [region, true, isStrOfMinLength],
+    [country, true, isStrOfMinLength],
+    [postalCode, true, isStrOfLengths, [5, 10]],
+  );
+  if (uid == null) err = userErr('Unauthorized', 401);
+  if (err) return next(err);
+  db.query(`
+    INSERT INTO addresses(uid, address_1, address_2, country, region, city, postal_code)
+    VALUES      ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT DO NOTHING
+    RETURNING   id;
+  `, [uid, address1, address2, country, region, city, postalCode])
+    .then(data => res.json(data.rows[0]))
     .catch(err => next({ err }));
 });
 
