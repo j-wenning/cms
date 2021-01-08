@@ -37,7 +37,7 @@ CREATE TABLE public.addresses (
     CONSTRAINT valid_address_2 CHECK (((address_2)::text !~ '([^\w'' ]|_)'::text)),
     CONSTRAINT valid_city CHECK (((city)::text !~ '[^\w'' ]|\d|_'::text)),
     CONSTRAINT valid_country CHECK (((country)::text !~ '[^\w'' ]|\d|_'::text)),
-    CONSTRAINT valid_postal_code CHECK (((address_2)::text !~ '([^\w''- ]|_)'::text)),
+    CONSTRAINT valid_postal_code CHECK (((address_2)::text !~ '([^-\w'' ]|_)'::text)),
     CONSTRAINT valid_region CHECK (((region)::text !~ '[^\w'' ]|\d|_'::text))
 );
 
@@ -182,10 +182,10 @@ ALTER SEQUENCE public.images_id_seq OWNED BY public.images.id;
 CREATE TABLE public.payment_methods (
     id integer NOT NULL,
     uid integer,
-    card_number integer,
-    security_code smallint,
-    name character varying(255),
-    expiry date,
+    card_number integer NOT NULL,
+    security_code smallint NOT NULL,
+    name character varying(255) NOT NULL,
+    expiry date NOT NULL,
     CONSTRAINT valid_date CHECK (((date_part('month'::text, expiry) >= date_part('month'::text, CURRENT_DATE)) AND (date_part('year'::text, expiry) >= date_part('year'::text, CURRENT_DATE)))),
     CONSTRAINT valid_name CHECK (((name)::text !~ '([^\w'' ]|\d|_)'::text))
 );
@@ -946,4 +946,3 @@ ALTER TABLE ONLY public.payment_methods
 --
 -- PostgreSQL database dump complete
 --
-
