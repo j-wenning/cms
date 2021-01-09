@@ -50,14 +50,18 @@ const verifyMultiple = (...vals) => {
   }
   return err;
 };
-const isNum = val => isNaN(parseInt(val)) ? 'number' : null;
-const isPosNum = val => isNum(val) || val < 0 ? 'positive number' : null;
+const isNum = val => /[^0-9]/g.test(val.toString()) ? 'number' : null;
+const isPosNum = val => isNum(val) || (val < 0) ? 'positive number' : null;
+const isPosNumOfMinLength = (val, min = 1) => isPosNum(val) || (val.toString().length < min) ? 'positive number of min length ' + min : null;
+const isPosNumOfMaxLength = (val, max = 1) => isPosNum(val) || (val.toString().length > max) ? 'positive number of max length ' + max : null;
+const isPosNumOfLength = (val, length = 1) => isPosNum(val) || (val.toString().length !== length) ? 'positive number of length ' + length : null;
 const isValidRating = val => val < 1 || val > 10 ? 'valid rating' : null;
 const isStr = val => typeof val === typeof String() ? null : 'string';
-const isStrOfMinLength = (val, min = 1) => isStr(val) && val.length < min ? 'string of min length ' + min : null;
-const isStrOfMaxLength = (val, max = 1) => isStr(val) && val.length > max ? 'string of max length ' + max : null;
-const isStrOfLength = (val, length = 1) => isStr(val) && val.length !== length ? 'string of length ' + lengths : null;
-const isStrOfLengths = (val, lengths = [1]) => isStr(val) && !lengths.includes(val.length) ? 'string of lengths ' + lengths : null;
+const isStrOfMinLength = (val, min = 1) => isStr(val) || (val.length < min) ? 'string of min length ' + min : null;
+const isStrOfMaxLength = (val, max = 1) => isStr(val) || (val.length > max) ? 'string of max length ' + max : null;
+const isStrOfLength = (val, length = 1) => isStr(val) || (val.length !== length) ? 'string of length ' + lengths : null;
+const isStrOfLengths = (val, lengths = [1]) => isStr(val) || !lengths.includes(val.length) ? 'string of lengths ' + lengths : null;
+const isDate = val => isNaN(Date.parse(val)) ? 'date' : null;
 const formatKeys = obj => {
   const result = Array.isArray(obj) ? [] : {};
   if (obj == null || typeof obj !== typeof Object()) return obj;
@@ -471,6 +475,32 @@ app.post('/api/user/address', (req, res, next) => {
     ON CONFLICT DO NOTHING
     RETURNING   id;
   `, [uid, address1, address2, country, region, city, postalCode])
+    .then(data => res.json(data.rows[0]))
+    .catch(err => next({ err }));
+});
+
+app.post('/api/user/paymentmethod', (req, res, next) => {
+  const { uid } = req.session;
+  const {
+    cardNumber,
+    securityCode,
+    cardName,
+    expiry,
+  } = req.body;
+  let err = verifyMultiple(
+    [cardNumber, true, isPosNumOfLength, 16],
+    [securityCode, true, isPosNumOfMinLength],
+    [cardName, true, isStrOfMinLength],
+    [expiry, true, isDate],
+  );
+  if (uid == null) err = userErr('Unauthorized', 401);
+  if (err) return next(err);
+  db.query(`
+    INSERT INTO payment_methods(uid, card_number, security_code, name, expiry)
+    VALUES      ($1, $2, $3, $4, $5)
+    ON CONFLICT DO NOTHING
+    RETURNING   id;
+  `, [uid, cardNumber, securityCode, cardName, expiry])
     .then(data => res.json(data.rows[0]))
     .catch(err => next({ err }));
 });
