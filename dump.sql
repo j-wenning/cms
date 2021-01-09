@@ -182,7 +182,7 @@ ALTER SEQUENCE public.images_id_seq OWNED BY public.images.id;
 CREATE TABLE public.payment_methods (
     id integer NOT NULL,
     uid integer,
-    card_number integer NOT NULL,
+    card_number bigint NOT NULL,
     security_code smallint NOT NULL,
     name character varying(255) NOT NULL,
     expiry date NOT NULL,
