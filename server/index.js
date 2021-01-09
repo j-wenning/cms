@@ -475,8 +475,11 @@ app.post('/api/user/address', (req, res, next) => {
     ON CONFLICT DO NOTHING
     RETURNING   id;
   `, [uid, address1, address2, country, region, city, postalCode])
-    .then(data => res.json(data.rows[0]))
-    .catch(err => next({ err }));
+    .then(data => {
+      const [obj] = data.rows;
+      if (!obj) return next(userErr('Duplicate entry'));
+      res.json(obj);
+    }).catch(err => next({ err }));
 });
 
 app.post('/api/user/paymentmethod', (req, res, next) => {
@@ -501,8 +504,11 @@ app.post('/api/user/paymentmethod', (req, res, next) => {
     ON CONFLICT DO NOTHING
     RETURNING   id;
   `, [uid, cardNumber, securityCode, cardName, expiry])
-    .then(data => res.json(data.rows[0]))
-    .catch(err => next({ err }));
+    .then(data => {
+      const [obj] = data.rows;
+      if (!obj) return next(userErr('Duplicate entry'));
+      res.json(obj);
+    }).catch(err => next({ err }));
 });
 
 app.use((error, req, res, next) => {
