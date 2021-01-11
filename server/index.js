@@ -531,6 +531,26 @@ app.delete('/api/user/address', (req, res, next) => {
     }).catch(err => next({ err }));
 });
 
+app.delete('/api/user/paymentmethod', (req, res, next) => {
+  const { uid } = req.session;
+  const { id } = req.body;
+  let err = verifyMultiple(
+    [id, true, isPosNum]
+  );
+  if (uid == null) err = userErr('Unauthorized', 401);
+  if (err) return next(err);
+  db.query(`
+    DELETE FROM payment_methods
+    WHERE       uid = $1 AND id = $2
+    RETURNING   id;
+  `, [uid, id])
+    .then(data => {
+      if (data.rows.length === 0) return next(userErr('Entry not present for current user', 404));
+      const { id } = data.rows[0];
+      res.json({ id });
+    }).catch(err => next({ err }));
+});
+
 app.use((error, req, res, next) => {
   const {
     err: err = null,
