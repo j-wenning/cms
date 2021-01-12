@@ -56,8 +56,12 @@ export default class Checkout extends React.Component {
         const json = res.json();
         if (res.ok) return json;
         throw json;
-      }).then(data => this.setState({ ...data }))
-        .catch(err => (async () => console.error(await err))());
+      }).then(data => {
+        let { addresses, paymentMethods } = data;
+        if (!addresses) addresses = [];
+        if (!paymentMethods) paymentMethods = [];
+        this.setState({ addresses, paymentMethods });
+      }).catch(err => (async () => console.error(await err))());
   }
 
   filterInput(input, val) {
@@ -153,14 +157,14 @@ export default class Checkout extends React.Component {
     }).catch(err => (async () => {
       const { code, msg } = await err;
       if (code !== 400) return console.error({ code, msg });
-      const btn = $(this.paymentMethodDupeRef.current);
+      const btn = $(this.addressDupeRef.current);
       btn.popover({
         content: 'This address is already associated with your account.',
         placement: 'top',
         trigger: 'manual',
       }).popover('show');
-      clearTimeout(this.paymentMethodPopTimeout);
-      this.paymentMethodPopTimeout = setTimeout(() => btn.popover('dispose'), 2000);
+      clearTimeout(this.addressPopTimeout);
+      this.addressPopTimeout = setTimeout(() => btn.popover('dispose'), 2000);
     })());
   }
 
@@ -205,6 +209,22 @@ export default class Checkout extends React.Component {
     })());
   }
 
+  removeAddress(id) {
+    fetch('/api/user/address', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).then(res => {
+      const json = res.json();
+      if (res.ok) return json;
+      throw json;
+    }).then(data => {
+      const { id } = data;
+      const addresses = this.state.addresses.filter(address => address.id !== id);
+      this.setState({ addresses });
+    }).catch(err => (async () => console.log(await err))())
+  }
+
   render() {
     const {
       addresses, paymentMethods,
@@ -235,14 +255,24 @@ export default class Checkout extends React.Component {
                         id={'checkout-address-' + id}
                         defaultChecked={isFirst}
                         required />
-                      <label htmlFor={'checkout-address-' + id} className='form-check-label'>
-                        <p className='mb-0'>{address1}</p>
-                        {
-                          address2 &&
-                          <p className='mb-0'>{address2}</p>
-                        }
-                        <p className='mb-0'>{city}, {region}</p>
-                        <p className='mb-0'>{postalCode}</p>
+                      <label htmlFor={'checkout-address-' + id} className='form-check-label container'>
+                        <div className='row'>
+                          <div className='col-6'>
+                            <p className='mb-0'>{address1}</p>
+                            {
+                              address2 &&
+                              <p className='mb-0'>{address2}</p>
+                            }
+                            <p className='mb-0'>{city}, {region}</p>
+                            <p className='mb-0'>{postalCode}</p>
+                          </div>
+                          <div className='col-6 text-right'>
+                            <button
+                              onClick={() => this.removeAddress(id)}
+                              className='btn btn-danger'
+                              type='button'>Remove</button>
+                          </div>
+                        </div>
                       </label>
                     </div>
                   );
@@ -358,6 +388,7 @@ export default class Checkout extends React.Component {
                   <div className='text-right'>
                     {
                       <button
+                        ref={this.addressDupeRef}
                         disabled={!validAddress}
                         className='btn btn-primary'
                         type='submit'>Add</button>
@@ -381,9 +412,19 @@ export default class Checkout extends React.Component {
                         id={'checkout-payment-method-' + id}
                         defaultChecked={isFirst}
                         required />
-                      <label htmlFor={'checkout-payment-method-' + id} className='form-check-label'>
-                        <p className='font-weight-bold mb-0'>{cardNumber}</p>
-                        <p>Cardholder surname: <span className='font-weight-bold'>{name}</span></p>
+                      <label htmlFor={'checkout-payment-method-' + id} className='form-check-label container'>
+                        <div className='row'>
+                          <div className='col-6'>
+                            <p className='font-weight-bold mb-0'>{cardNumber}</p>
+                            <p>Cardholder surname: <span className='font-weight-bold'>{name}</span></p>
+                          </div>
+                          <div className='col-6 text-right'>
+                            <button
+                              onClick={() => 1}
+                              className='btn btn-danger'
+                              type='button'>Remove</button>
+                          </div>
+                        </div>
                       </label>
                     </div>
                   );
