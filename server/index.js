@@ -346,6 +346,38 @@ app.get('/api/product', (req, res, next) => {
     }).catch(err => next({ err }));
 });
 
+app.get('/api/cart/shippingmethods', (req, res, next) => {
+  const { cid } = req.session;
+  if (cid == null) return next(userErr('User missing cart', 400));
+  db.query(`
+    WITH shipping_cte AS (
+      SELECT    s.pid,
+                ARRAY_AGG(sm.name)  AS shipping_methods
+      FROM      shipping          AS s
+      JOIN      shipping_methods  AS sm ON(s.shipping_method = sm.id)
+      GROUP BY  s.pid
+    )
+    SELECT  s.shipping_methods
+    FROM    cart_products AS c
+    JOIN    shipping_cte  AS s USING(pid)
+    WHERE   c.cid = $1;
+  `, [cid])
+    .then(data => {
+      let { rows } = data;
+      if (rows.length > 1) {
+        const [{ shipping_methods: shippingMethods }] = data.rows;
+        rows = rows.reduce((a, row) => {
+          const { shipping_methods } = row;
+          for(const key in a) {
+            if (!shipping_methods.includes(a[key])) a.splice(key, 1);
+          }
+          return a;
+        }, shippingMethods)
+      }
+      res.json(rows);
+    }).catch(err => next({ err }));
+});
+
 app.put('/api/cart/product', (req, res, next) => {
   const { cid } = req.session;
   const { id, qty } = req.body;
