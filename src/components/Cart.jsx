@@ -72,7 +72,8 @@ export default class Cart extends React.Component {
             products.length === 0
               ? <p>Your cart is empty.</p>
               : products.map((product, index) => {
-              const { id, img: { url, alt }, name, price, qty } = product;
+              const { id, img, name, price, qty } = product;
+              const { url = null, alt = null } = img || {};
               return (
                 <div className='card mb-3' key={id}>
                   <div className='row no-gutters'>
