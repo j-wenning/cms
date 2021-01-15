@@ -352,7 +352,12 @@ app.get('/api/cart/shippingmethods', (req, res, next) => {
   db.query(`
     WITH shipping_cte AS (
       SELECT    s.pid,
-                ARRAY_AGG(sm.name)  AS shipping_methods
+                ARRAY_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id', s.shipping_method,
+                    'name', sm.name
+                  )
+                ) AS shipping_methods
       FROM      shipping          AS s
       JOIN      shipping_methods  AS sm ON(s.shipping_method = sm.id)
       GROUP BY  s.pid
@@ -368,13 +373,13 @@ app.get('/api/cart/shippingmethods', (req, res, next) => {
         const [{ shipping_methods: shippingMethods }] = data.rows;
         rows = rows.reduce((a, row) => {
           const { shipping_methods } = row;
-          for(const key in a) {
-            if (!shipping_methods.includes(a[key])) a.splice(key, 1);
+          for(let i = 0; i < a.length; ++i) {
+            if (shipping_methods.find(method => method.id === a[i].id) == null) a.splice(i, 1);
           }
           return a;
         }, shippingMethods)
       }
-      res.json(rows);
+      res.json({ shippingMethods: rows });
     }).catch(err => next({ err }));
 });
 
