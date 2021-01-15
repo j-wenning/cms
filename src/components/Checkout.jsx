@@ -9,6 +9,9 @@ export default class Checkout extends React.Component {
       addresses:          [],
       paymentMethods:     [],
       shippingMethods:    [],
+      curAddress:         null,
+      curPaymentMethod:   null,
+      curShippingMethod:  null,
       address1:           '',
       address1Blur:       false,
       address1Valid:      false,
@@ -209,7 +212,7 @@ export default class Checkout extends React.Component {
       const { id } = data;
       const addresses = this.state.addresses.filter(address => address.id !== id);
       this.setState({ addresses });
-    }).catch(err => (async () => console.log(await err))())
+    }).catch(err => (async () => console.log(await err))());
   }
 
   componentDidMount() {
@@ -220,9 +223,13 @@ export default class Checkout extends React.Component {
         throw json;
       }).then(data => {
         let { addresses, paymentMethods } = data;
+        let curAddress = null;
+        let curPaymentMethod = null;
         if (!addresses) addresses = [];
+        else curAddress = addresses[0].id;
         if (!paymentMethods) paymentMethods = [];
-        this.setState({ addresses, paymentMethods });
+        else curPaymentMethod = paymentMethods[0].id;
+        this.setState({ addresses, paymentMethods, curAddress, curPaymentMethod });
       }).catch(err => (async () => console.error(await err))());
     fetch('/api/cart/shippingmethods')
       .then(res => {
@@ -231,8 +238,10 @@ export default class Checkout extends React.Component {
         throw json;
       }).then(data => {
         let { shippingMethods } = data;
+        let curShippingMethod = null;
         if (!shippingMethods) shippingMethods = [];
-        this.setState({ shippingMethods });
+        else curShippingMethod = shippingMethods[0].id;
+        this.setState({ shippingMethods, curShippingMethod });
       }).catch(err => (async () => console.error(await err))());
   }
 
@@ -263,6 +272,7 @@ export default class Checkout extends React.Component {
                     return (
                       <div className='form-check' key={id}>
                         <input
+                          onChange={() => this.setState({ curAddress: id })}
                           type='radio'
                           className='form-check-input'
                           name='checkout-address'
@@ -424,6 +434,7 @@ export default class Checkout extends React.Component {
                     return (
                       <div className='form-check' key={id}>
                         <input
+                          onChange={() => this.setState({ curPaymentMethod: id })}
                           type='radio'
                           className='form-check-input'
                           name='checkout-payment-method'
@@ -568,6 +579,7 @@ export default class Checkout extends React.Component {
                     return (
                       <div className='form-check' key={id}>
                         <input
+                          onChange={() => this.setState({ curShippingMethod: id })}
                           type='radio'
                           className='form-check-input'
                           name='checkout-shipping-method'
