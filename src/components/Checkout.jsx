@@ -248,6 +248,7 @@ export default class Checkout extends React.Component {
   render() {
     const {
       addresses, paymentMethods, shippingMethods,
+      curAddress, curPaymentMethod, curShippingMethod,
       address1, address2, city, region, country, postalCode,
       cardNumber, securityCode, cardName, expiryMonth, expiryYear,
       address1Valid, cityValid, regionValid, countryValid, postalCodeValid,
@@ -258,6 +259,43 @@ export default class Checkout extends React.Component {
     } = this.state;
     return (
       <main>
+        <div
+          className='modal fade'
+          id='checkout-confirmation-modal'
+          tabindex='-1'
+          aria-labelledby='checkout-confirmation-label'
+          aria-hidden='true'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
+              <div className='modal-header'>
+                <h5 className='modal-title' id='checkout-confirmation-label'>Confirm your information</h5>
+                <button type='button' class='close' data-dismiss='modal' aria-label='Close'>
+                  <span aria-hidden='true'>&times;</span>
+                </button>
+              </div>
+              <div className='modal-body'>
+                <h5>Address</h5>
+                <p className='m-0'>{curAddress?.address1}</p>
+                {
+                  !!curAddress?.address2 &&
+                  <p className='m-0'>{curAddress?.address2}</p>
+                }
+                <p className='m-0'>{curAddress?.city}, {curAddress?.region}</p>
+                <p>{curAddress?.postalCode}</p>
+                <h5>Payment Method</h5>
+                <p>{curPaymentMethod?.cardNumber}</p>
+                <h5>Shipping Method</h5>
+                <p><span className='text-capitalize'>{curShippingMethod?.name}</span> shipping</p>
+              </div>
+              <div className='modal-footer'>
+                <button
+                  className='btn btn-secondary'
+                  data-dismiss='modal'
+                  type='button'>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className='container-fluid'>
           <div className='row m-md-5'>
             <div className='col-12 col-md-4 col-xl-3 mb-4'>
@@ -603,7 +641,11 @@ export default class Checkout extends React.Component {
             </div>
           </div>
           <div className='row'>
-            <button className='btn btn-primary' type='submit'>Submit</button>
+            <button
+              className='btn btn-primary'
+              data-toggle='modal'
+              data-target='#checkout-confirmation-modal'
+              type='button'>Proceed to checkout</button>
           </div>
         </div>
       </main>
