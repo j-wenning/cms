@@ -223,7 +223,6 @@ CREATE VIEW public.payment_methods_view AS
  SELECT payment_methods.id,
     payment_methods.uid,
     "overlay"((payment_methods.card_number)::text, repeat('*'::text, (char_length((payment_methods.card_number)::text) - 4)), 1, (char_length((payment_methods.card_number)::text) - 4)) AS card_number,
-    (regexp_matches(rtrim((payment_methods.name)::text, ' '::text), '[^\s]*$'::text))[1] AS name,
     payment_methods.expiry
    FROM public.payment_methods
   ORDER BY payment_methods.id;
