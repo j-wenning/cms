@@ -529,8 +529,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.addresses (id, uid, country, region, city, address_1, address_2, postal_code) FROM stdin;
-1	1	USA	CA	Irvine	39 Thicket	\N	92614
-2	1	USA	CA	Santa Ana	17351 Keegan Way	\N	92685
 \.
 
 
@@ -571,8 +569,6 @@ COPY public.images (id, pid, url, alt, img_order) FROM stdin;
 --
 
 COPY public.payment_methods (id, uid, card_number, security_code, name, expiry) FROM stdin;
-1	1	123456789	123	last and first	2021-01-02
-2	1	987654321	321	first and last	2023-07-31
 \.
 
 
@@ -654,7 +650,7 @@ COPY public.users (id) FROM stdin;
 -- Name: addresses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
-SELECT pg_catalog.setval('public.addresses_id_seq', 2, true);
+SELECT pg_catalog.setval('public.addresses_id_seq', 1, false);
 
 
 --
@@ -682,7 +678,7 @@ SELECT pg_catalog.setval('public.images_id_seq', 7, true);
 -- Name: payment_methods_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
-SELECT pg_catalog.setval('public.payment_methods_id_seq', 2, true);
+SELECT pg_catalog.setval('public.payment_methods_id_seq', 1, false);
 
 
 --
