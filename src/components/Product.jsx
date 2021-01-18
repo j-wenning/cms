@@ -127,8 +127,7 @@ class Product extends React.Component {
                   to=''
                   onClick={() => this.props.history.goBack()}
                   className='btn btn-secondary'
-                  data-dismiss='modal'
-                  type='button'>Back to shopping</Link>
+                  data-dismiss='modal'>Back to shopping</Link>
                 <Link
                   to=''
                   onClick={() => this.props.history.push('/cart')}
