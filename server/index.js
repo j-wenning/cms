@@ -369,8 +369,8 @@ app.get('/api/cart/shippingmethods', (req, res, next) => {
   `, [cid])
     .then(data => {
       let { rows } = data;
-      if (rows.length > 1) {
-        const [{ shipping_methods: shippingMethods }] = data.rows;
+      if (rows.length > 0) {
+        const [{ shipping_methods: shippingMethods }] = rows;
         rows = rows.reduce((a, row) => {
           const { shipping_methods } = row;
           for(let i = 0; i < a.length; ++i) {
