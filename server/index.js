@@ -474,8 +474,7 @@ app.get('/api/user/checkout', (req, res, next) => {
               SELECT  ARRAY_AGG(
                         JSON_BUILD_OBJECT(
                           'id',           id,
-                          'card_number',  card_number,
-                          'name',         name
+                          'card_number',  card_number
                         )
                       )
               FROM    payment_methods_view
