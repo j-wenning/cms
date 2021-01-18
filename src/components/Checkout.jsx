@@ -43,8 +43,6 @@ export default class Checkout extends React.Component {
       expiryYear:         '',
       expiryYearBlur:     false,
       expiryYearValid:    false,
-      validAddress:       false,
-      validPaymentMethod: false,
     };
     this.addressRef = React.createRef();
     this.addressDupeRef = React.createRef();
@@ -81,7 +79,7 @@ export default class Checkout extends React.Component {
             return this.state?.[input] !== undefined ? val : undefined;
         }
       })();
-      const result = {
+      return {
         ...state,
         [input]: val,
         [input + 'Valid']: (() => {
@@ -106,15 +104,6 @@ export default class Checkout extends React.Component {
           }
         })()
       };
-      const {
-        address1Valid, cityValid, regionValid, postalCodeValid, countryValid,
-        cardNumberValid, securityCodeValid, cardNameValid, expiryMonthValid, expiryYearValid,
-      } = result;
-      return {
-        ...result,
-        validAddress: address1Valid && cityValid && regionValid && postalCodeValid && countryValid,
-        validPaymentMethod: cardNumberValid && cardNameValid && securityCodeValid && cardNameValid && expiryMonthValid && expiryYearValid
-      };
     });
   }
 
@@ -134,7 +123,8 @@ export default class Checkout extends React.Component {
     }).then(data => {
       const { addresses } = this.state;
       const { id } = data;
-      this.setState({ addresses: [{ id, address1, address2, city, region, postalCode }, ...addresses ] });
+      const newAddress = { id, address1, address2, city, region, postalCode };
+      this.setState({ addresses: [newAddress, ...addresses ], curAddress: newAddress });
       $(this.addressRef.current).dropdown('hide');
       $(this.addressRef.current).dropdown('dispose');
       document.activeElement.blur();
@@ -175,7 +165,8 @@ export default class Checkout extends React.Component {
       const { id } = data;
       const _cardNumber = cardNumber.split('').map((val, index) => index < cardNumber.length - 4 ? '*' : val).join('');
       const name = cardName.split(' ').pop();
-      this.setState({ paymentMethods: [{ id, cardNumber: _cardNumber, name }, ...paymentMethods] });
+      const newPaymentMethod = { id, cardNumber: _cardNumber, name };
+      this.setState({ paymentMethods: [newPaymentMethod, ...paymentMethods], curPaymentMethod: newPaymentMethod });
       $(this.paymentMethodRef.current).dropdown('hide');
       $(this.paymentMethodRef.current).dropdown('dispose');
       document.activeElement.blur();
@@ -211,7 +202,23 @@ export default class Checkout extends React.Component {
     }).then(data => {
       const { id } = data;
       const addresses = this.state.addresses.filter(address => address.id !== id);
-      this.setState({ addresses });
+      this.setState({ addresses, curAddress: addresses[0] });
+    }).catch(err => (async () => console.log(await err))());
+  }
+
+  removePaymentMethod(id) {
+    fetch('/api/user/paymentmethod', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).then(res => {
+      const json = res.json();
+      if (res.ok) return json;
+      throw json;
+    }).then(data => {
+      const { id } = data;
+      const paymentMethods = this.state.paymentMethods.filter(method => method.id !== id);
+      this.setState({ paymentMethods, curPaymentMethod: paymentMethods[0] });
     }).catch(err => (async () => console.log(await err))());
   }
 
@@ -255,21 +262,23 @@ export default class Checkout extends React.Component {
       cardNumberValid, securityCodeValid, cardNameValid, expiryMonthValid, expiryYearValid,
       address1Blur, cityBlur, regionBlur, countryBlur, postalCodeBlur,
       cardNumberBlur, securityCodeBlur, cardNameBlur, expiryMonthBlur, expiryYearBlur,
-      validAddress, validPaymentMethod,
     } = this.state;
+    const validAddress = address1Valid && cityValid && regionValid && postalCodeValid && countryValid;
+    const validPaymentMethod = cardNumberValid && cardNameValid && securityCodeValid && cardNameValid && expiryMonthValid && expiryYearValid;
+    const canCheckout = curAddress != null && curPaymentMethod != null && curShippingMethod != null;
     return (
       <main>
         <div
           className='modal fade'
           id='checkout-confirmation-modal'
-          tabindex='-1'
+          tabIndex='-1'
           aria-labelledby='checkout-confirmation-label'
           aria-hidden='true'>
           <div className='modal-dialog'>
             <div className='modal-content'>
               <div className='modal-header'>
                 <h5 className='modal-title' id='checkout-confirmation-label'>Confirm your information</h5>
-                <button type='button' class='close' data-dismiss='modal' aria-label='Close'>
+                <button type='button' className='close' data-dismiss='modal' aria-label='Close'>
                   <span aria-hidden='true'>&times;</span>
                 </button>
               </div>
@@ -307,6 +316,7 @@ export default class Checkout extends React.Component {
                   {
                     shippingMethods?.map((method, index) => {
                       const { id, name } = method;
+                      console.log(method)
                       const isFirst = index === 0;
                       return (
                         <div className='form-check' key={id}>
@@ -500,7 +510,7 @@ export default class Checkout extends React.Component {
                 <div className='card-body'>
                   {
                     paymentMethods?.map((method, index) => {
-                      const { id, cardNumber, name } = method;
+                      const { id, cardNumber } = method;
                       const isFirst = index === 0;
                       return (
                         <div className='form-check' key={id}>
@@ -515,12 +525,11 @@ export default class Checkout extends React.Component {
                           <label htmlFor={'checkout-payment-method-' + id} className='form-check-label container'>
                             <div className='row'>
                               <div className='col-12 col-md-6'>
-                                <p className='font-weight-bold mb-0'>{cardNumber}</p>
-                                <p>Cardholder surname: <span className='font-weight-bold'>{name}</span></p>
+                                <p className='mb-0'>{cardNumber}</p>
                               </div>
                               <div className='col-12 col-md-6 text-right'>
                                 <button
-                                  onClick={() => 1}
+                                  onClick={() => this.removePaymentMethod(id)}
                                   className='btn btn-outline-danger'
                                   type='button'>Remove</button>
                               </div>
@@ -642,6 +651,7 @@ export default class Checkout extends React.Component {
           </div>
           <div className='row'>
             <button
+              disabled={!canCheckout}
               className='btn btn-primary'
               data-toggle='modal'
               data-target='#checkout-confirmation-modal'
