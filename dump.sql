@@ -185,7 +185,7 @@ CREATE TABLE public.orders (
     address integer NOT NULL,
     shipping_method integer NOT NULL,
     payment_method integer NOT NULL,
-    delivered boolean NOT NULL
+    delivered boolean DEFAULT false NOT NULL
 );
 
 
