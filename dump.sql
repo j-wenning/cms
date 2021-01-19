@@ -176,6 +176,44 @@ ALTER SEQUENCE public.images_id_seq OWNED BY public.images.id;
 
 
 --
+-- Name: orders; Type: TABLE; Schema: public; Owner: cms
+--
+
+CREATE TABLE public.orders (
+    id integer NOT NULL,
+    cid integer NOT NULL,
+    address integer NOT NULL,
+    shipping_method integer NOT NULL,
+    payment_method integer NOT NULL,
+    delivered boolean NOT NULL
+);
+
+
+ALTER TABLE public.orders OWNER TO cms;
+
+--
+-- Name: orders_id_seq; Type: SEQUENCE; Schema: public; Owner: cms
+--
+
+CREATE SEQUENCE public.orders_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.orders_id_seq OWNER TO cms;
+
+--
+-- Name: orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cms
+--
+
+ALTER SEQUENCE public.orders_id_seq OWNED BY public.orders.id;
+
+
+--
 -- Name: payment_methods; Type: TABLE; Schema: public; Owner: cms
 --
 
@@ -475,6 +513,13 @@ ALTER TABLE ONLY public.images ALTER COLUMN id SET DEFAULT nextval('public.image
 
 
 --
+-- Name: orders id; Type: DEFAULT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders ALTER COLUMN id SET DEFAULT nextval('public.orders_id_seq'::regclass);
+
+
+--
 -- Name: payment_methods id; Type: DEFAULT; Schema: public; Owner: cms
 --
 
@@ -560,6 +605,14 @@ COPY public.images (id, pid, url, alt, img_order) FROM stdin;
 5	3	test3.png		1
 6	6	test2.png		1
 7	2	thisisanimg.png		1
+\.
+
+
+--
+-- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: cms
+--
+
+COPY public.orders (id, cid, address, shipping_method, payment_method, delivered) FROM stdin;
 \.
 
 
@@ -674,6 +727,13 @@ SELECT pg_catalog.setval('public.images_id_seq', 7, true);
 
 
 --
+-- Name: orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
+--
+
+SELECT pg_catalog.setval('public.orders_id_seq', 1, false);
+
+
+--
 -- Name: payment_methods_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
 --
 
@@ -723,6 +783,14 @@ SELECT pg_catalog.setval('public.users_id_seq', 4, true);
 
 
 --
+-- Name: addresses addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.addresses
+    ADD CONSTRAINT addresses_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: cart_products cart_products_pkey; Type: CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -744,6 +812,22 @@ ALTER TABLE ONLY public.carts
 
 ALTER TABLE ONLY public.images
     ADD CONSTRAINT images_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment_methods payment_methods_pkey; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.payment_methods
+    ADD CONSTRAINT payment_methods_pkey PRIMARY KEY (id);
 
 
 --
@@ -811,6 +895,14 @@ ALTER TABLE ONLY public.shipping_methods
 
 
 --
+-- Name: orders unique_order; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT unique_order UNIQUE (cid);
+
+
+--
 -- Name: payment_methods unique_payment_method; Type: CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -851,11 +943,35 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: orders fk_address; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT fk_address FOREIGN KEY (address) REFERENCES public.addresses(id);
+
+
+--
 -- Name: cart_products fk_cid; Type: FK CONSTRAINT; Schema: public; Owner: cms
 --
 
 ALTER TABLE ONLY public.cart_products
     ADD CONSTRAINT fk_cid FOREIGN KEY (cid) REFERENCES public.carts(id);
+
+
+--
+-- Name: orders fk_cid; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT fk_cid FOREIGN KEY (cid) REFERENCES public.carts(id);
+
+
+--
+-- Name: orders fk_payment_method; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT fk_payment_method FOREIGN KEY (payment_method) REFERENCES public.payment_methods(id);
 
 
 --
@@ -907,6 +1023,14 @@ ALTER TABLE ONLY public.shipping
 
 
 --
+-- Name: orders fk_shipping_method; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT fk_shipping_method FOREIGN KEY (shipping_method) REFERENCES public.shipping_methods(id);
+
+
+--
 -- Name: ratings fk_uid; Type: FK CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -941,3 +1065,4 @@ ALTER TABLE ONLY public.payment_methods
 --
 -- PostgreSQL database dump complete
 --
+
