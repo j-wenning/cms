@@ -412,6 +412,86 @@ app.put('/api/cart/product', (req, res, next) => {
     .catch(err => next({ err }));
 });
 
+app.put('/api/cart/checkout', (req, res, next) => {
+  const { uid, cid } = req.session;
+  const {
+    address,
+    paymentMethod,
+    shippingMethod,
+  } = req.body;
+  let err = verifyMultiple(
+    [address, true, isPosNum],
+    [paymentMethod, true, isPosNum],
+    [shippingMethod, true, isPosNum],
+  );
+  if (cid == null) err = userErr('User missing cart', 400);
+  if (uid == null) err = userErr('Unauthorized', 401)
+  if (err) return next(err);
+  db.query(`
+    WITH  carts_cte   AS (
+      UPDATE  carts
+      SET     checked_out = TRUE
+      WHERE   id = $2
+      RETURNING NULL
+    ),    orders_cte  AS (
+      INSERT INTO orders(cid, address, payment_method, shipping_method)
+      VALUES  (
+        $2,
+        (
+          SELECT  id
+          FROM    addresses
+          WHERE   uid = $1 AND id = $3
+        ),
+        (
+          SELECT  id
+          FROM    payment_methods
+          WHERE   uid = $1 AND id = $4
+        ),
+        (
+          SELECT  id
+          FROM    shipping_methods
+          WHERE   id = $5 AND NOT EXISTS(
+            SELECT  1
+            FROM    (
+              SELECT    ARRAY_AGG(s.shipping_method) AS shipping_methods
+              FROM      cart_products AS c
+              JOIN      shipping      AS s USING(pid)
+              WHERE     c.cid = $2
+              GROUP BY  c.pid
+            ) AS c
+            WHERE   NOT ARRAY[$5] <@ c.shipping_methods
+          )
+        )
+      )
+      RETURNING NULL
+    )
+    SELECT  p.id,
+            p.name,
+            p.price,
+            p.discount
+    FROM    cart_products AS c
+    JOIN    products      AS p  ON(p.id = c.pid)
+    JOIN    carts_cte           ON(TRUE)
+    JOIN    orders_cte          ON(TRUE)
+    WHERE   c.cid = $2;
+  `, [uid, cid, address, paymentMethod, shippingMethod])
+    .then(data => {
+      res.json(data.rows);
+    }).catch(err => {
+      if (parseInt(err.code) === 23502) return next(userErr());
+      next({ err });
+    });
+});
+
+app.use('/api/test', (req, res, next) => {
+  db.query(`
+    SELECT 1;
+    SELECT 2;
+    SELECT 3;
+  `).then(data => res.json(data.rows))
+    .catch(err => next({ err }));
+});
+
 app.delete('/api/cart/product', (req, res, next) => {
   const { cid } = req.session;
   const { id } = req.body;
