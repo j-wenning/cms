@@ -203,7 +203,7 @@ export default class Checkout extends React.Component {
       const { id } = data;
       const addresses = this.state.addresses.filter(address => address.id !== id);
       this.setState({ addresses, curAddress: addresses[0] });
-    }).catch(err => (async () => console.log(await err))());
+    }).catch(err => (async () => console.error(await err))());
   }
 
   removePaymentMethod(id) {
@@ -219,7 +219,7 @@ export default class Checkout extends React.Component {
       const { id } = data;
       const paymentMethods = this.state.paymentMethods.filter(method => method.id !== id);
       this.setState({ paymentMethods, curPaymentMethod: paymentMethods[0] });
-    }).catch(err => (async () => console.log(await err))());
+    }).catch(err => (async () => console.error(await err))());
   }
 
   componentDidMount() {
@@ -316,7 +316,6 @@ export default class Checkout extends React.Component {
                   {
                     shippingMethods?.map((method, index) => {
                       const { id, name } = method;
-                      console.log(method)
                       const isFirst = index === 0;
                       return (
                         <div className='form-check' key={id}>
