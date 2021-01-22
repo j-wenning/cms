@@ -102,16 +102,17 @@ app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules
 app.use(express.static(path.resolve(__dirname, '..', 'public/')));
 
 app.use((req, res, next) => {
-  const { uid, cid } = req.session;
-  if (uid == null || cid != null) return next();
+  const { uid } = req.session;
+  if (uid == null) return next();
   db.query(`
     WITH  carts_cte_sel AS (
-      SELECT  id,
-              uid,
-              checked_out
-      FROM    carts
-      WHERE   uid = $1 AND NOT checked_out
-      LIMIT   1
+      SELECT  id
+      FROM    carts AS c
+      WHERE   uid = $1 AND NOT EXISTS(
+        SELECT  1
+        FROM    orders AS o
+        WHERE   o.cid = c.id
+      )
     ),    carts_cte_ins AS (
       INSERT INTO carts(uid)
       SELECT      $1
@@ -428,12 +429,7 @@ app.put('/api/cart/checkout', (req, res, next) => {
   if (uid == null) err = userErr('Unauthorized', 401)
   if (err) return next(err);
   db.query(`
-    WITH  carts_cte   AS (
-      UPDATE  carts
-      SET     checked_out = TRUE
-      WHERE   id = $2
-      RETURNING NULL
-    ),    orders_cte  AS (
+    WITH orders_cte  AS (
       INSERT INTO orders(cid, address, payment_method, shipping_method)
       VALUES  (
         $2,
@@ -450,7 +446,12 @@ app.put('/api/cart/checkout', (req, res, next) => {
         (
           SELECT  id
           FROM    shipping_methods
-          WHERE   id = $5 AND NOT EXISTS(
+          WHERE   id = $5 AND EXISTS(
+            SELECT  1
+            FROM    cart_products
+            WHERE   id = $2
+            LIMIT   1
+          ) AND NOT EXISTS(
             SELECT  1
             FROM    (
               SELECT    ARRAY_AGG(s.shipping_method) AS shipping_methods
@@ -463,6 +464,7 @@ app.put('/api/cart/checkout', (req, res, next) => {
           )
         )
       )
+      ON CONFLICT DO NOTHING
       RETURNING NULL
     )
     SELECT  p.id,
@@ -471,25 +473,11 @@ app.put('/api/cart/checkout', (req, res, next) => {
             p.discount
     FROM    cart_products AS c
     JOIN    products      AS p  ON(p.id = c.pid)
-    JOIN    carts_cte           ON(TRUE)
     JOIN    orders_cte          ON(TRUE)
     WHERE   c.cid = $2;
   `, [uid, cid, address, paymentMethod, shippingMethod])
-    .then(data => {
-      res.json(data.rows);
-    }).catch(err => {
-      if (parseInt(err.code) === 23502) return next(userErr());
-      next({ err });
-    });
-});
-
-app.use('/api/test', (req, res, next) => {
-  db.query(`
-    SELECT 1;
-    SELECT 2;
-    SELECT 3;
-  `).then(data => res.json(data.rows))
-    .catch(err => next({ err }));
+    .then(data => res.json({ cart: data.rows }))
+    .catch(err => next(parseInt(err.code) === 23502 ? userErr() : { err }));
 });
 
 app.delete('/api/cart/product', (req, res, next) => {
