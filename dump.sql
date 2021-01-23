@@ -109,8 +109,7 @@ ALTER SEQUENCE public.cart_products_id_seq OWNED BY public.cart_products.id;
 
 CREATE TABLE public.carts (
     id integer NOT NULL,
-    uid integer,
-    checked_out boolean DEFAULT false
+    uid integer
 );
 
 
@@ -588,8 +587,8 @@ COPY public.cart_products (id, cid, pid, qty) FROM stdin;
 -- Data for Name: carts; Type: TABLE DATA; Schema: public; Owner: cms
 --
 
-COPY public.carts (id, uid, checked_out) FROM stdin;
-1	1	f
+COPY public.carts (id, uid) FROM stdin;
+1	1
 \.
 
 
