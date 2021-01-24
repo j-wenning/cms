@@ -101,36 +101,37 @@ app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules
 
 app.use(express.static(path.resolve(__dirname, '..', 'public/')));
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   const { uid } = req.session;
   if (uid == null) return next();
-  db.query(`
-    WITH  carts_cte_sel AS (
-      SELECT  id
-      FROM    carts AS c
-      WHERE   uid = $1 AND NOT EXISTS(
-        SELECT  1
-        FROM    orders AS o
-        WHERE   o.cid = c.id
+  try {
+    await db.query('BEGIN;');
+    const { rows: [{ id: cid } = {}] = [] } = await db.query(`
+      WITH  carts_cte_sel AS (
+        SELECT  id
+        FROM    carts AS c
+        WHERE   uid = $1 AND NOT EXISTS(
+          SELECT  1
+          FROM    orders AS o
+          WHERE   o.cid = c.id
+        )
+      ),    carts_cte_ins AS (
+        INSERT INTO carts(uid)
+        SELECT      $1
+        WHERE       NOT EXISTS(
+          SELECT  1
+          FROM    carts_cte_sel
+        )
+        RETURNING   id
       )
-    ),    carts_cte_ins AS (
-      INSERT INTO carts(uid)
-      SELECT      $1
-      WHERE       NOT EXISTS(
-        SELECT  1
-        FROM    carts_cte_sel
-      )
-      RETURNING   id
-    )
-    SELECT    id AS cid
-    FROM      carts_cte_sel
-    FULL JOIN carts_cte_ins USING(id);
-  `, [uid])
-    .then(data => {
-      const { cid } = data.rows[0];
-      req.session.cid = cid;
-      next();
-    }).catch(err => next({ err }));
+      SELECT    id AS cid
+      FROM      carts_cte_sel
+      FULL JOIN carts_cte_ins USING(id);
+    `, [uid]);
+    await db.query('COMMIT;');
+    req.session.cid = cid;
+    next();
+  } catch (err) { next({ err }); }
 });
 
 app.get('/api/products/prices', (req, res, next) => {
