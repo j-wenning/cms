@@ -1,9 +1,9 @@
 import React from 'react';
 import $ from 'jquery';
-import { Link } from 'react-router-dom';
+import { Link, withRouter } from 'react-router-dom';
 import { buildQuery } from './URI';
 
-export default class App extends React.Component {
+class Header extends React.Component {
   constructor(props) {
     super(props);
     this.nav = React.createRef();
@@ -20,13 +20,13 @@ export default class App extends React.Component {
   handleSubmit(e) {
     e.preventDefault();
     const query = buildQuery({ s: this.state.searchQuery });
-    window.location.assign(`/search` + query);
+    this.props.history.push('/search' + query);
   }
 
   componentDidMount() {
     this.setState({
       navHeight: $(this.nav.current).css('height'),
-      searchQuery: new URLSearchParams(window.location.search).get('s') || ''
+      searchQuery: new URLSearchParams(this.props.location.search).get('s') || ''
     });
   }
 
@@ -66,3 +66,5 @@ export default class App extends React.Component {
     );
   }
 };
+
+export default withRouter(Header);
