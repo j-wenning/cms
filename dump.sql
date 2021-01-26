@@ -16,6 +16,26 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+--
+-- Name: fix_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
+--
+
+CREATE FUNCTION public.fix_product_qty() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+NEW.qty = LEAST(GREATEST(0, NEW.qty), (
+SELECT qty
+FROM products
+WHERE id = NEW.pid
+));
+RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.fix_product_qty() OWNER TO cms;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -939,6 +959,13 @@ ALTER TABLE ONLY public.tags
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cart_products cart_products_qty; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER cart_products_qty BEFORE INSERT OR UPDATE ON public.cart_products FOR EACH ROW EXECUTE FUNCTION public.fix_product_qty();
 
 
 --
