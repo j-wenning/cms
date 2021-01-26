@@ -19,7 +19,11 @@ export default class ProductCard extends React.Component {
     const query = buildQuery({ id });
     return (
       <Link
-        to={'/product' + query}
+        to={{
+          pathname: '/product',
+          search: query,
+          state: { prevLocation: this.props.location }
+        }}
         className={'p-0 card d-inline-block whitespace-normal text-reset text-decoration-none ' + this.props?.className}>
         <div className='card-body d-flex flex-column justify-content-between'>
           <div className='mb-2 card-img-top text-center'>
