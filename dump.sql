@@ -17,10 +17,10 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: fix_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
+-- Name: fix_cart_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
 --
 
-CREATE FUNCTION public.fix_product_qty() RETURNS trigger
+CREATE FUNCTION public.fix_cart_product_qty() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -34,7 +34,25 @@ END;
 $$;
 
 
-ALTER FUNCTION public.fix_product_qty() OWNER TO cms;
+ALTER FUNCTION public.fix_cart_product_qty() OWNER TO cms;
+
+--
+-- Name: update_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
+--
+
+CREATE FUNCTION public.update_product_qty() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+UPDATE cart_products
+SET qty = LEAST(qty, NEW.qty)
+WHERE pid = NEW.id;
+RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_product_qty() OWNER TO cms;
 
 SET default_tablespace = '';
 
@@ -962,10 +980,17 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: cart_products cart_products_qty; Type: TRIGGER; Schema: public; Owner: cms
+-- Name: cart_products cart_product_qty; Type: TRIGGER; Schema: public; Owner: cms
 --
 
-CREATE TRIGGER cart_products_qty BEFORE INSERT OR UPDATE ON public.cart_products FOR EACH ROW EXECUTE FUNCTION public.fix_product_qty();
+CREATE TRIGGER cart_product_qty BEFORE INSERT OR UPDATE ON public.cart_products FOR EACH ROW EXECUTE FUNCTION public.fix_cart_product_qty();
+
+
+--
+-- Name: products product_qty; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER product_qty BEFORE UPDATE OF qty ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_product_qty();
 
 
 --
