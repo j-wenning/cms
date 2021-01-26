@@ -106,7 +106,7 @@ app.use(async (req, res, next) => {
   if (uid == null) return next();
   try {
     await db.query('BEGIN;');
-    const { rows: [{ id: cid } = {}] = [] } = await db.query(`
+    const { rows: [{ cid } = {}] = [] } = await db.query(`
       WITH  carts_cte_sel AS (
         SELECT  id
         FROM    carts AS c
@@ -430,7 +430,7 @@ app.put('/api/cart/checkout', (req, res, next) => {
   if (uid == null) err = userErr('Unauthorized', 401)
   if (err) return next(err);
   db.query(`
-    WITH orders_cte  AS (
+    WITH  orders_cte      AS (
       INSERT INTO orders(cid, address, payment_method, shipping_method)
       VALUES  (
         $2,
@@ -467,15 +467,25 @@ app.put('/api/cart/checkout', (req, res, next) => {
       )
       ON CONFLICT DO NOTHING
       RETURNING NULL
+    ),  cart_products_cte AS (
+      SELECT  p.id,
+              p.name,
+              p.price,
+              p.discount,
+              c.qty,
+              c.pid
+      FROM    cart_products AS c
+      JOIN    products      AS p ON(p.id = c.pid)
+      WHERE   c.id = $2
+    )   products_cte      AS (
+      UPDATE      products
+      SET         p.qty -= c.qty
+      FROM        products          AS p
+      INNER JOIN  cart_products_cte AS c ON(p.id = c.pid)
     )
-    SELECT  p.id,
-            p.name,
-            p.price,
-            p.discount
-    FROM    cart_products AS c
-    JOIN    products      AS p  ON(p.id = c.pid)
-    JOIN    orders_cte          ON(TRUE)
-    WHERE   c.cid = $2;
+    SELECT  *
+    FROM    cart_products_cte
+    JOIN    orders_cte        ON(TRUE);
   `, [uid, cid, address, paymentMethod, shippingMethod])
     .then(data => res.json({ cart: data.rows }))
     .catch(err => next(parseInt(err.code) === 23502 ? userErr() : { err }));
