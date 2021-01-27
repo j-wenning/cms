@@ -61,12 +61,24 @@ class Product extends React.Component {
 
   doCartFetch() {
     const { id } = this.state;
-    fetch('/api/cart/product', {
+    return fetch('/api/cart/product', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, qty: 1 }),
     }).then(res => { if (!res.ok) throw res.json(); })
     .catch(err => (async () => console.error(await err))());
+  }
+
+  doBuyNow(e) {
+    e.preventDefault();
+    this.doCartFetch()
+      .then(() => this.props.history.push('/checkout'))
+      .catch(err => console.error(err));
+  }
+
+  preventDefault(e, cb) {
+    e.preventDefault();
+    cb();
   }
 
   componentDidMount() { this.doFetch(); }
@@ -75,10 +87,11 @@ class Product extends React.Component {
 
   render() {
     const {
-      id, images, name, description, information, price, discount, shippingMethod,
+      id, images, name, description, information, price, discount,
       shippingMethods, modalSrc, modalAlt, recommended, rating, userRating,
       ratingCount, qty,
     } = this.state;
+    const { prevLocation } = this.props.location.state;
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
@@ -124,13 +137,13 @@ class Product extends React.Component {
               <div className='modal-footer justify-content-center justify-content-sm-end'>
                 {/* The following is a workaround since bootstrap modals interact unexpectedly with react router links. */}
                 <Link
-                  to=''
-                  onClick={() => this.props.history.goBack()}
+                  to={prevLocation}
+                  onClick={e => this.preventDefault(e, () => this.props.history.goBack())}
                   className='btn btn-secondary'
                   data-dismiss='modal'>Back to shopping</Link>
                 <Link
-                  to=''
-                  onClick={() => this.props.history.push('/cart')}
+                  to='/cart'
+                  onClick={e => this.preventDefault(e, () => this.props.history.push('/cart'))}
                   className='btn btn-primary'
                   data-dismiss='modal'>View cart</Link>
               </div>
@@ -222,18 +235,19 @@ class Product extends React.Component {
               {
                 shippingMethods.length > 0
                 ? shippingMethods.map((method, i) => {
-                  const isFirstMethod = method === shippingMethod;
-                  const shipping = method.toLocaleUpperCase()[0] + method.substr(1).toLocaleLowerCase()
+                  const isFirstMethod = i === 0;
+                  let { id, name } = method;
+                  name = name.toLocaleUpperCase()[0] + name.substr(1).toLocaleLowerCase();
                   return (
-                    <label key={i}>
+                    <label key={id}>
                       <input
                         type='radio'
-                        id={'product-order-radio-' + i}
-                        onChange={() => {}}
+                        id={'product-order-radio-' + id}
+                        onChange={() => this.setState({ shippingMethod: method })}
                         defaultChecked={isFirstMethod}
                         className='mr-2'
                         name='product-order-radio' />
-                      <span>{shipping} shipping</span>
+                      <span>{name} shipping</span>
                     </label>
                   );
                 })
@@ -246,7 +260,7 @@ class Product extends React.Component {
                 }
                 <Link
                   to='/checkout'
-                  onClick={() => this.doCartFetch()}
+                  onClick={e => this.doBuyNow(e)}
                   tabIndex={qty <= 0 ? -1 : 0}
                   aria-disabled={qty <= 0}
                   className={`btn btn-primary mr-2 ${qty <= 0 && 'disabled'}`}
