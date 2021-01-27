@@ -309,7 +309,10 @@ app.get('/api/product', (req, res, next) => {
       GROUP BY  pid
     ),        shipping_cte  AS (
       SELECT    ARRAY_AGG(
-                  sm.name
+                  JSON_BUILD_OBJECT(
+                    'id', sm.id,
+                    'name', sm.name
+                  )
                 ) AS shipping_methods,
                 s.pid AS id
       FROM      shipping AS s
@@ -395,19 +398,11 @@ app.put('/api/cart/product', (req, res, next) => {
   if (cid == null) err = userErr('User missing cart', 400);
   if (err) return next(err);
   db.query(`
-    WITH products_cte AS (
-      SELECT  qty
-      FROM    products
-      WHERE   id = $2
-    )
     INSERT INTO   cart_products (cid, pid, qty)
-    SELECT        $1,
-                  $2,
-                  LEAST(p.qty, GREATEST($3, 0))
-    FROM          products_cte AS p
+    VALUES        ($1, $2, $3)
     ON CONFLICT
     ON CONSTRAINT unique_cart_product
-    DO UPDATE SET qty = LEAST((SELECT qty FROM products_cte), GREATEST($3, 0))
+    DO UPDATE SET qty = $3
     RETURNING     qty;
   `, [cid, id, qty])
     .then(data => res.json(data.rows[0]))
