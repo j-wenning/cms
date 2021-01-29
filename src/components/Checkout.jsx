@@ -1,8 +1,10 @@
 import React from 'react';
-import { months, countries } from './Lists';
 import $ from 'jquery';
+import { Link, withRouter } from 'react-router-dom';
+import { months, countries } from './Lists';
+import { parseQuery } from './URI';
 
-export default class Checkout extends React.Component {
+class Checkout extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -190,6 +192,38 @@ export default class Checkout extends React.Component {
     })());
   }
 
+  async handleCheckout(e) {
+    const {
+      curAddress: { id: address },
+      curPaymentMethod: { id: paymentMethod },
+      curShippingMethod: { id: shippingMethod },
+    } = this.state;
+    e.preventDefault();
+    try {
+      const { pid, qty } = parseQuery(this.props.location.search);
+      const res = await (
+        pid == null
+        ? fetch('/api/cart/checkout', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, paymentMethod, shippingMethod }),
+        })
+        : fetch('/api/cart/checkout?single', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, paymentMethod, shippingMethod, pid, qty }),
+        })
+      );
+      const json = await res.json();
+      if (res.ok) {
+        this.props.history.push({
+          pathname: '/receipt',
+          state: { products: json },
+        });
+      } else throw json;
+    } catch (err) { console.error(await err); }
+  }
+
   removeAddress(id) {
     fetch('/api/user/address', {
       method: 'DELETE',
@@ -223,6 +257,7 @@ export default class Checkout extends React.Component {
   }
 
   componentDidMount() {
+    let { pid, shipping } = parseQuery(this.props.location.search);
     fetch('/api/user/checkout')
       .then(res => {
         const json = res.json();
@@ -238,6 +273,13 @@ export default class Checkout extends React.Component {
         else curPaymentMethod = paymentMethods[0];
         this.setState({ addresses, paymentMethods, curAddress, curPaymentMethod });
       }).catch(err => (async () => console.error(await err))());
+    if (pid != null) {
+      const { methods, method } = JSON.parse(atob(shipping));
+      return this.setState({
+        shippingMethods: methods,
+        curShippingMethod: methods[method],
+      });
+    }
     fetch('/api/cart/shippingmethods')
       .then(res => {
         const json = res.json();
@@ -301,6 +343,11 @@ export default class Checkout extends React.Component {
                   className='btn btn-secondary'
                   data-dismiss='modal'
                   type='button'>Cancel</button>
+                <Link
+                  to='/receipt'
+                  onClick={e => this.handleCheckout(e)}
+                  className='btn btn-primary'
+                  data-dismiss='modal'>Confirm</Link>
               </div>
             </div>
           </div>
@@ -610,7 +657,7 @@ export default class Checkout extends React.Component {
                               <option value='' disabled />
                               {
                                 months.map((month, index) => (
-                                  <option key={index} value={index}>{month.substr(0, 3)}</option>
+                                  <option key={index} value={index + 1}>{month.substr(0, 3)}</option>
                                 ))
                               }
                             </select>
@@ -648,16 +695,20 @@ export default class Checkout extends React.Component {
               </div>
             </div>
           </div>
-          <div className='row'>
-            <button
-              disabled={!canCheckout}
-              className='btn btn-primary'
-              data-toggle='modal'
-              data-target='#checkout-confirmation-modal'
-              type='button'>Proceed to checkout</button>
+          <div className='row mx-5'>
+            <div className='col text-right'>
+              <button
+                disabled={!canCheckout}
+                className='btn btn-primary'
+                data-toggle='modal'
+                data-target='#checkout-confirmation-modal'
+                type='button'>Proceed to checkout</button>
+            </div>
           </div>
         </div>
       </main>
     );
   }
 }
+
+export default withRouter(Checkout);
