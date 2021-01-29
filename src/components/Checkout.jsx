@@ -258,6 +258,7 @@ class Checkout extends React.Component {
 
   componentDidMount() {
     let { pid, shipping } = parseQuery(this.props.location.search);
+    let promise;
     fetch('/api/user/checkout')
       .then(res => {
         const json = res.json();
@@ -274,24 +275,33 @@ class Checkout extends React.Component {
         this.setState({ addresses, paymentMethods, curAddress, curPaymentMethod });
       }).catch(err => (async () => console.error(await err))());
     if (pid != null) {
-      const { methods, method } = JSON.parse(atob(shipping));
-      return this.setState({
-        shippingMethods: methods,
-        curShippingMethod: methods[method],
+      promise = new Promise(res => {
+        const { methods, method } = JSON.parse(atob(shipping));
+        this.setState({
+          shippingMethods: methods,
+          curShippingMethod: methods[method],
+        });
+        res(methods);
       });
+    } else {
+      promise = fetch('/api/cart/shippingmethods')
+        .then(res => {
+          const json = res.json();
+          if (res.ok) return json;
+          throw json;
+        }).then(data => {
+          let { shippingMethods } = data;
+          let curShippingMethod = null;
+          if (!shippingMethods) shippingMethods = [];
+          else curShippingMethod = shippingMethods[0];
+          this.setState({ shippingMethods, curShippingMethod });
+          return shippingMethods;
+        }).catch(err => (async () => console.error(await err))());
     }
-    fetch('/api/cart/shippingmethods')
-      .then(res => {
-        const json = res.json();
-        if (res.ok) return json;
-        throw json;
-      }).then(data => {
-        let { shippingMethods } = data;
-        let curShippingMethod = null;
-        if (!shippingMethods) shippingMethods = [];
-        else curShippingMethod = shippingMethods[0];
-        this.setState({ shippingMethods, curShippingMethod });
-      }).catch(err => (async () => console.error(await err))());
+    Promise.all([promise]).then(data => {
+      const [{ length }] = data;
+      if (length === 0) this.props.history.replace('/');
+    });
   }
 
   render() {
