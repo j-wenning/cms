@@ -46,7 +46,11 @@ CREATE FUNCTION public.update_product_qty() RETURNS trigger
 BEGIN
 UPDATE cart_products
 SET qty = LEAST(qty, NEW.qty)
-WHERE pid = NEW.id;
+WHERE pid = NEW.id AND NOT EXISTS(
+SELECT  1
+FROM    orders
+WHERE   orders.cid = cart_products.cid
+);
 RETURN NEW;
 END;
 $$;
