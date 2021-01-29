@@ -25,6 +25,8 @@ class Product extends React.Component {
       rating: null,
       userRating: null,
       ratingCount: null,
+      qty: 0,
+      buyQty: 1,
     };
   }
 
@@ -61,7 +63,7 @@ class Product extends React.Component {
 
   doCartFetch() {
     const { id } = this.state;
-    return fetch('/api/cart/product', {
+    fetch('/api/cart/product', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, qty: 1 }),
@@ -69,12 +71,21 @@ class Product extends React.Component {
     .catch(err => (async () => console.error(await err))());
   }
 
-  doBuyNow(e) {
-    e.preventDefault();
-    this.doCartFetch()
-      .then(() => this.props.history.push('/checkout'))
-      .catch(err => console.error(err));
+  doBuyNow() {
+    const { id: pid, shippingMethods: methods, shippingMethod, buyQty: qty } = this.state;
+    const shipping = btoa(JSON.stringify({
+      methods,
+      method: methods.findIndex(method => method.id === shippingMethod.id)
+    }));
+    this.props.history.push({
+      pathname: '/checkout',
+      search: buildQuery({ pid, qty, shipping }),
+    });
   }
+
+  updateBuyQty(val) { this.setBuyQty(this.state.buyQty + val); }
+
+  setBuyQty(val) { this.setState({ buyQty: val === '' ? val : Math.min(Math.max(1, val), this.state.qty) }); }
 
   preventDefault(e, cb) {
     e.preventDefault();
@@ -89,7 +100,7 @@ class Product extends React.Component {
     const {
       id, images, name, description, information, price, discount,
       shippingMethods, modalSrc, modalAlt, recommended, rating, userRating,
-      ratingCount, qty,
+      ratingCount, qty, buyQty
     } = this.state;
     const { prevLocation } = this.props.location.state;
     const regPrice = (price).toFixed(2);
@@ -137,7 +148,7 @@ class Product extends React.Component {
               <div className='modal-footer justify-content-center justify-content-sm-end'>
                 {/* The following is a workaround since bootstrap modals interact unexpectedly with react router links. */}
                 <Link
-                  to={prevLocation}
+                  to={prevLocation || ''}
                   onClick={e => this.preventDefault(e, () => this.props.history.goBack())}
                   className='btn btn-secondary'
                   data-dismiss='modal'>Back to shopping</Link>
@@ -231,7 +242,7 @@ class Product extends React.Component {
               </div>
             </div>
             <div className='col-12 col-xl-3 d-flex flex-column order-first order-xl-0 mb-5'>
-              <h4>Preferred Shipping Method</h4>
+              <h4>Purchase</h4>
               {
                 shippingMethods.length > 0
                 ? shippingMethods.map((method, i) => {
@@ -253,26 +264,48 @@ class Product extends React.Component {
                 })
                 : <p>No shipping methods available.</p>
               }
-              <div>
-                {
-                  qty <= 0 &&
-                  <p className='mb-1 text-danger'>Out of stock</p>
-                }
-                <Link
-                  to='/checkout'
-                  onClick={e => this.doBuyNow(e)}
-                  tabIndex={qty <= 0 ? -1 : 0}
-                  aria-disabled={qty <= 0}
-                  className={`btn btn-primary mr-2 ${qty <= 0 && 'disabled'}`}
-                  >Buy now</Link>
-                <button
-                  disabled={qty <= 0}
-                  onClick={() => this.doCartFetch()}
-                  data-toggle='modal'
-                  data-target='#cart-modal'
-                  className='btn btn-primary mr-2'
-                  type='button'>Add to cart</button>
-              </div>
+              {
+                qty <= 0
+                ? <p className='mb-1 text-danger'>Out of stock</p>
+                : <>
+                    <div className='input-group mb-3 justify-content-end justify-content-md-start'>
+                      <div className='input-group-prepend'>
+                        <button
+                          onClick={() => this.updateBuyQty(-1)}
+                          className='btn btn-outline-secondary'
+                          type='button'>-</button>
+                      </div>
+                      <input
+                        value={buyQty}
+                        onChange={e => this.setBuyQty(e.target.value)}
+                        type='number'
+                        className='form-control product-qty-input'
+                        aria-label='Quantity' />
+                      <div className='input-group-append'>
+                        <button
+                          onClick={() => this.updateBuyQty(1)}
+                          className='btn btn-outline-secondary'
+                          type='button'>+</button>
+                      </div>
+                    </div>
+                    <div>
+                      <Link
+                        to='/checkout'
+                        onClick={e => this.preventDefault(e, () => this.doBuyNow())}
+                        tabIndex={qty <= 0 ? -1 : 0}
+                        aria-disabled={qty <= 0}
+                        className={`btn btn-primary mr-2 ${qty <= 0 && 'disabled'}`}
+                        >Buy now</Link>
+                      <button
+                        disabled={qty <= 0}
+                        onClick={() => this.doCartFetch()}
+                        data-toggle='modal'
+                        data-target='#cart-modal'
+                        className='btn btn-primary mr-2'
+                        type='button'>Add to cart</button>
+                    </div>
+                  </>
+              }
             </div>
           </div>
         </div>
