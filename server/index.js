@@ -409,23 +409,53 @@ app.put('/api/cart/product', (req, res, next) => {
     .catch(err => next({ err }));
 });
 
-app.put('/api/cart/checkout', (req, res, next) => {
-  const { uid, cid } = req.session;
+app.put('/api/cart/checkout', async (req, res, next) => {
+  let { uid, cid } = req.session;
+  const { single } = req.query;
   const {
     address,
     paymentMethod,
     shippingMethod,
+    pid,
+    qty
   } = req.body;
   let err = verifyMultiple(
     [address, true, isPosNum],
     [paymentMethod, true, isPosNum],
     [shippingMethod, true, isPosNum],
+    [pid, single != null, isPosNum],
+    [qty, single != null, isPosNumOfMinLength],
   );
   if (cid == null) err = userErr('User missing cart', 400);
   if (uid == null) err = userErr('Unauthorized', 401)
   if (err) return next(err);
-  db.query(`
-    WITH  orders_cte      AS (
+  try {
+    await db.query('BEGIN;')
+    if (single != null) {
+      const { rows: [{ id }] } = await db.query(`
+        INSERT INTO carts(uid)
+        VALUES      ($1)
+        RETURNING   id;
+      `, [uid]);
+      cid = id;
+      await db.query(`
+        INSERT INTO cart_products(cid, pid, qty)
+        VALUES      ($1, $2, $3);
+      `, [cid, pid, qty]);
+    }
+    await db.query(`
+      DELETE FROM cart_products
+      WHERE       cid = $1 AND qty = 0;
+    `, [cid]);
+    await db.query(`
+      DELETE FROM carts
+      WHERE       id = $1 AND NOT EXISTS (
+        SELECT  1
+        FROM    cart_products
+        WHERE   cid = $1
+      );
+    `, [cid]);
+    await db.query(`
       INSERT INTO orders(cid, address, payment_method, shipping_method)
       VALUES  (
         $2,
@@ -445,7 +475,7 @@ app.put('/api/cart/checkout', (req, res, next) => {
           WHERE   id = $5 AND EXISTS(
             SELECT  1
             FROM    cart_products
-            WHERE   id = $2
+            WHERE   cid = $2
             LIMIT   1
           ) AND NOT EXISTS(
             SELECT  1
@@ -459,31 +489,37 @@ app.put('/api/cart/checkout', (req, res, next) => {
             WHERE   NOT ARRAY[$5] <@ c.shipping_methods
           )
         )
-      )
-      ON CONFLICT DO NOTHING
-      RETURNING NULL
-    ),  cart_products_cte AS (
+      );
+    `, [uid, cid, address, paymentMethod, shippingMethod]);
+    await db.query(`
+      UPDATE    products      AS p
+      SET       qty = p.qty - c.qty
+      FROM      cart_products AS c
+      WHERE     c.cid = $1 AND p.id = c.pid;
+    `, [cid]);
+    await db.query('COMMIT;');
+    const data = await db.query(`
       SELECT  p.id,
               p.name,
               p.price,
               p.discount,
-              c.qty,
-              c.pid
+              c.qty
       FROM    cart_products AS c
-      JOIN    products      AS p ON(p.id = c.pid)
-      WHERE   c.id = $2
-    )   products_cte      AS (
-      UPDATE      products
-      SET         p.qty -= c.qty
-      FROM        products          AS p
-      INNER JOIN  cart_products_cte AS c ON(p.id = c.pid)
-    )
-    SELECT  *
-    FROM    cart_products_cte
-    JOIN    orders_cte        ON(TRUE);
-  `, [uid, cid, address, paymentMethod, shippingMethod])
-    .then(data => res.json({ cart: data.rows }))
-    .catch(err => next(parseInt(err.code) === 23502 ? userErr() : { err }));
+      JOIN    products      AS p  ON(p.id = c.pid)
+      WHERE   c.id = $1;
+    `, [cid]);
+    res.json(data.rows);
+  } catch (err) {
+    next(
+      (() => {
+        switch(parseInt(err.code)) {
+          case 23502: return userErr();
+          case 42830: return userErr(undefined, 404);
+          default: return { err };
+        }
+      })()
+    );
+  }
 });
 
 app.delete('/api/cart/product', (req, res, next) => {
