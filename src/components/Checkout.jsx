@@ -216,9 +216,9 @@ class Checkout extends React.Component {
       );
       const json = await res.json();
       if (res.ok) {
-        this.props.history.push({
+        this.props.history.replace({
           pathname: '/receipt',
-          state: { products: json },
+          state: json,
         });
       } else throw json;
     } catch (err) { console.error(await err); }
