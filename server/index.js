@@ -497,18 +497,44 @@ app.put('/api/cart/checkout', async (req, res, next) => {
       FROM      cart_products AS c
       WHERE     c.cid = $1 AND p.id = c.pid;
     `, [cid]);
-    await db.query('COMMIT;');
     const data = await db.query(`
-      SELECT  p.id,
-              p.name,
-              p.price,
-              p.discount,
-              c.qty
-      FROM    cart_products AS c
-      JOIN    products      AS p  ON(p.id = c.pid)
-      WHERE   c.id = $1;
-    `, [cid]);
-    res.json(data.rows);
+      SELECT JSON_BUILD_OBJECT(
+        'products', (
+          SELECT    ARRAY_AGG(
+                      JSON_BUILD_OBJECT(
+                        'id',     p.id,
+                        'name',   p.name,
+                        'price',  ((p.price - p.discount) * p.qty) / 100,
+                        'qty',     c.qty
+                      )
+                    )
+          FROM      cart_products AS c
+          LEFT JOIN products      AS p  ON(p.id = c.pid)
+          WHERE     c.cid = $2
+        ),
+        'address', (
+          SELECT    JSON_BUILD_OBJECT(
+                      'region',       region,
+                      'city',         city,
+                      'address_1',    address_1,
+                      'address_2',    address_2,
+                      'postal_code',  postal_code
+                    )
+          FROM      addresses
+          WHERE     uid = $1 AND id = $3
+          LIMIT     1
+        ),
+        'shipping_method', (
+          SELECT  name
+          FROM    shipping_methods
+          WHERE   id = $4
+          LIMIT   1
+        )
+      ) AS obj;
+    `, [uid, cid, address, shippingMethod]);
+    await db.query('COMMIT;');
+    const { obj: { ...objData } } = data.rows[0];
+    res.json(formatKeys(objData));
   } catch (err) {
     next(
       (() => {
