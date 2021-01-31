@@ -3,6 +3,7 @@ import Search from './Search';
 import Product from './Product';
 import Cart from './Cart';
 import Checkout from './Checkout';
+import Receipt from './Receipt';
 import _404 from './404';
 
 const routes = [
@@ -29,6 +30,11 @@ const routes = [
   {
     path: '/checkout',
     component: Checkout,
+    routes: []
+  },
+  {
+    path: '/receipt',
+    component: Receipt,
     routes: []
   },
   {
