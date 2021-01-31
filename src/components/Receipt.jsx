@@ -17,6 +17,7 @@ class Receipt extends React.Component {
       address = {},
       shippingMethod = '',
     } = this.props.location.state || {};
+    if (products?.length === 0) this.props.history.replace('/');
     this.setState({ products, address, shippingMethod });
   }
 
