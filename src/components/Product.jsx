@@ -33,7 +33,7 @@ class Product extends React.Component {
   setRecommended(recommended) { this.setState({ recommended: recommended.length > 0 }); }
 
   doFetch() {
-    const id = new URLSearchParams(window.location.search).get('id');
+    const id = new URLSearchParams(this.props.location.search).get('id');
     const query = buildQuery({ id });
     if (isNaN(parseInt(id))) return this.props.history.push('/');
     if (this.state.id === id) return;
@@ -102,7 +102,7 @@ class Product extends React.Component {
       shippingMethods, modalSrc, modalAlt, recommended, rating, userRating,
       ratingCount, qty, buyQty
     } = this.state;
-    const { prevLocation } = this.props.location.state;
+    const { prevLocation = '/' } = this.props.location.state || {};
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
@@ -146,10 +146,9 @@ class Product extends React.Component {
                 </button>
               </div>
               <div className='modal-footer justify-content-center justify-content-sm-end'>
-                {/* The following is a workaround since bootstrap modals interact unexpectedly with react router links. */}
                 <Link
-                  to={prevLocation || ''}
-                  onClick={e => this.preventDefault(e, () => this.props.history.goBack())}
+                  to={prevLocation}
+                  onClick={e => this.preventDefault(e, () => this.props.history.replace(prevLocation))}
                   className='btn btn-secondary'
                   data-dismiss='modal'>Back to shopping</Link>
                 <Link
