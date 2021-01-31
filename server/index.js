@@ -355,36 +355,31 @@ app.get('/api/cart/shippingmethods', (req, res, next) => {
   const { cid } = req.session;
   if (cid == null) return next(userErr('User missing cart', 400));
   db.query(`
-    WITH shipping_cte AS (
-      SELECT    s.pid,
-                ARRAY_AGG(
-                  JSON_BUILD_OBJECT(
-                    'id', s.shipping_method,
-                    'name', sm.name
-                  )
-                ) AS shipping_methods
-      FROM      shipping          AS s
-      JOIN      shipping_methods  AS sm ON(s.shipping_method = sm.id)
-      GROUP BY  s.pid
-    )
-    SELECT  s.shipping_methods
-    FROM    cart_products AS c
-    JOIN    shipping_cte  AS s USING(pid)
-    WHERE   c.cid = $1;
+    SELECT  (
+              SELECT  JSON_AGG(s)
+              FROM    shipping_methods AS s
+            ) AS shipping_methods,
+            COALESCE(
+              (
+                SELECT    ARRAY_AGG((
+                            SELECT    JSON_AGG(sm)
+                            FROM      shipping          AS s
+                            LEFT JOIN shipping_methods  AS sm ON(sm.id = s.shipping_method)
+                            WHERE     s.pid = c.pid
+                            GROUP BY  s.pid
+                          ))
+                FROM      cart_products     AS c
+                WHERE     c.cid = $1
+              ), ARRAY[NULL]::JSON[]
+            ) AS user_shipping;
   `, [cid])
     .then(data => {
-      let { rows } = data;
-      if (rows.length > 0) {
-        const [{ shipping_methods: shippingMethods }] = rows;
-        rows = rows.reduce((a, row) => {
-          const { shipping_methods } = row;
-          for(let i = 0; i < a.length; ++i) {
-            if (shipping_methods.find(method => method.id === a[i].id) == null) a.splice(i, 1);
-          }
-          return a;
-        }, shippingMethods)
-      }
-      res.json({ shippingMethods: rows });
+      let [{ shippingMethods, userShipping }] = formatKeys(data.rows);
+      userShipping = userShipping.reduce((agg, methods) =>
+        agg.filter(aggMethod => methods?.find(method => method.id === aggMethod.id) != null),
+        shippingMethods
+      );
+      res.json({ shippingMethods: userShipping });
     }).catch(err => next({ err }));
 });
 
