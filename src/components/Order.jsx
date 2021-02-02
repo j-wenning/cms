@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, withRouter } from 'react-router-dom';
+import { buildQuery } from './URI';
 
-class Receipt extends React.Component {
+class Order extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -12,13 +13,20 @@ class Receipt extends React.Component {
   }
 
   componentDidMount() {
-    const {
-      products = [],
-      address = {},
-      shippingMethod = '',
-    } = this.props.location.state || {};
-    if (products?.length === 0) this.props.history.replace('/');
-    this.setState({ products, address, shippingMethod });
+    const oid = this.props.location.pathname.split('/').pop();
+    console.log(oid)
+    fetch('/api/order' + buildQuery({ oid }))
+      .then(res => {
+        const json = res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
+        const { products, address, shippingMethod } = data;
+        this.setState({ products, address, shippingMethod });
+      }).catch(err => {
+        (async () => console.error(await err))();
+        this.props.history.goBack();
+      });
   }
 
   render() {
@@ -94,4 +102,4 @@ class Receipt extends React.Component {
   }
 }
 
-export default withRouter(Receipt);
+export default withRouter(Order);
