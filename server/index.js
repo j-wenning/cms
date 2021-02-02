@@ -356,22 +356,22 @@ app.get('/api/cart/shippingmethods', (req, res, next) => {
   if (cid == null) return next(userErr('User missing cart', 400));
   db.query(`
     SELECT  (
-              SELECT  JSON_AGG(s)
-              FROM    shipping_methods AS s
-            ) AS shipping_methods,
-            COALESCE(
-              (
-                SELECT    ARRAY_AGG((
-                            SELECT    JSON_AGG(sm)
-                            FROM      shipping          AS s
-                            LEFT JOIN shipping_methods  AS sm ON(sm.id = s.shipping_method)
-                            WHERE     s.pid = c.pid
-                            GROUP BY  s.pid
-                          ))
-                FROM      cart_products     AS c
-                WHERE     c.cid = $1
-              ), ARRAY[NULL]::JSON[]
-            ) AS user_shipping;
+        SELECT  JSON_AGG(s)
+        FROM    shipping_methods AS s
+      ) AS shipping_methods,
+      COALESCE(
+        (
+          SELECT    ARRAY_AGG((
+                      SELECT    JSON_AGG(sm)
+                      FROM      shipping          AS s
+                      LEFT JOIN shipping_methods  AS sm ON(sm.id = s.shipping_method)
+                      WHERE     s.pid = c.pid
+                      GROUP BY  s.pid
+                    ))
+          FROM      cart_products     AS c
+          WHERE     c.cid = $1
+        ), ARRAY[NULL]::JSON[]
+      ) AS user_shipping;
   `, [cid])
     .then(data => {
       let [{ shippingMethods, userShipping }] = formatKeys(data.rows);
@@ -450,7 +450,7 @@ app.put('/api/cart/checkout', async (req, res, next) => {
         WHERE   cid = $1
       );
     `, [cid]);
-    await db.query(`
+    const data = await db.query(`
       INSERT INTO orders(cid, address, payment_method, shipping_method)
       VALUES  (
         $2,
@@ -484,7 +484,8 @@ app.put('/api/cart/checkout', async (req, res, next) => {
             WHERE   NOT ARRAY[$5] <@ c.shipping_methods
           )
         )
-      );
+      )
+      RETURNING   id AS oid;
     `, [uid, cid, address, paymentMethod, shippingMethod]);
     await db.query(`
       UPDATE    products      AS p
@@ -492,44 +493,8 @@ app.put('/api/cart/checkout', async (req, res, next) => {
       FROM      cart_products AS c
       WHERE     c.cid = $1 AND p.id = c.pid;
     `, [cid]);
-    const data = await db.query(`
-      SELECT JSON_BUILD_OBJECT(
-        'products', (
-          SELECT    ARRAY_AGG(
-                      JSON_BUILD_OBJECT(
-                        'id',     p.id,
-                        'name',   p.name,
-                        'price',  ((p.price - p.discount) * c.qty)::FLOAT / 100,
-                        'qty',     c.qty
-                      )
-                    )
-          FROM      cart_products AS c
-          LEFT JOIN products      AS p  ON(p.id = c.pid)
-          WHERE     c.cid = $2
-        ),
-        'address', (
-          SELECT    JSON_BUILD_OBJECT(
-                      'region',       region,
-                      'city',         city,
-                      'address_1',    address_1,
-                      'address_2',    address_2,
-                      'postal_code',  postal_code
-                    )
-          FROM      addresses
-          WHERE     uid = $1 AND id = $3
-          LIMIT     1
-        ),
-        'shipping_method', (
-          SELECT  name
-          FROM    shipping_methods
-          WHERE   id = $4
-          LIMIT   1
-        )
-      ) AS obj;
-    `, [uid, cid, address, shippingMethod]);
     await db.query('COMMIT;');
-    const { obj: { ...objData } } = data.rows[0];
-    res.json(formatKeys(objData));
+    res.json(data.rows[0]);
   } catch (err) {
     next(
       (() => {
@@ -602,28 +567,28 @@ app.get('/api/user/checkout', (req, res, next) => {
   if (uid == null) return next(userErr('Unauthorized', 401));
   db.query(`
     SELECT  (
-              SELECT  ARRAY_AGG(
-                        JSON_BUILD_OBJECT(
-                          'id',           id,
-                          'region',       region,
-                          'city',         city,
-                          'address_1',    address_1,
-                          'postal_code',  postal_code
-                        )
-                      )
-              FROM    addresses
-              WHERE   uid = $1
-            ) AS addresses,
-            (
-              SELECT  ARRAY_AGG(
-                        JSON_BUILD_OBJECT(
-                          'id',           id,
-                          'card_number',  card_number
-                        )
-                      )
-              FROM    payment_methods_view
-              WHERE   uid = $1
-            ) AS payment_methods
+        SELECT  ARRAY_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id',           id,
+                    'region',       region,
+                    'city',         city,
+                    'address_1',    address_1,
+                    'postal_code',  postal_code
+                  )
+                )
+        FROM    addresses
+        WHERE   uid = $1
+      ) AS addresses,
+      (
+        SELECT  ARRAY_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id',           id,
+                    'card_number',  card_number
+                  )
+                )
+        FROM    payment_methods_view
+        WHERE   uid = $1
+      ) AS payment_methods;
   `, [uid])
     .then(data => res.json({ ...formatKeys(data.rows[0]) }))
     .catch(err => next({ err }));
@@ -728,6 +693,59 @@ app.delete('/api/user/paymentmethod', (req, res, next) => {
       if (data.rows.length === 0) return next(userErr('Entry not present for current user', 404));
       const { id } = data.rows[0];
       res.json({ id });
+    }).catch(err => next({ err }));
+});
+
+app.get('/api/order', (req, res, next) => {
+  const { uid } = req.session;
+  const { oid } = req.query;
+  let err = verifyMultiple(
+    [oid, true, isPosNumOfMinLength]
+  );
+  if (uid == null) err = userErr('Unauthorized', 401);
+  if (err) return next(err);
+  db.query(`
+    SELECT  JSON_BUILD_OBJECT(
+        'products', (
+          SELECT    ARRAY_AGG(
+                      JSON_BUILD_OBJECT(
+                        'id',     p.id,
+                        'name',   p.name,
+                        'price',  ((p.price - p.discount) * c.qty)::FLOAT / 100,
+                        'qty',     c.qty
+                      )
+                    )
+          FROM      cart_products AS c
+          LEFT JOIN products      AS p  ON(p.id = c.pid)
+          WHERE     c.cid = o.cid
+        ),
+        'address', (
+          SELECT    JSON_BUILD_OBJECT(
+                      'region',       region,
+                      'city',         city,
+                      'address_1',    address_1,
+                      'address_2',    address_2,
+                      'postal_code',  postal_code
+                    )
+          FROM      addresses
+          WHERE     id = o.address
+          LIMIT     1
+        ),
+        'shipping_method', (
+          SELECT  name
+          FROM    shipping_methods
+          WHERE   id = o.shipping_method
+          LIMIT   1
+        )
+      ) AS obj
+    FROM    orders AS o
+    JOIN    carts  AS c ON(o.cid = c.id)
+    WHERE   c.uid = $1 AND o.id = $2;
+  `, [uid, oid])
+    .then(data => {
+      const { rows: [{ obj: { ...objData } = {} } = {}] } = data;
+      if (Object.keys(objData).length === 0) return next(userErr('Not found', 404));
+      res.json(formatKeys(objData));
     }).catch(err => next({ err }));
 });
 
