@@ -499,7 +499,7 @@ app.put('/api/cart/checkout', async (req, res, next) => {
                       JSON_BUILD_OBJECT(
                         'id',     p.id,
                         'name',   p.name,
-                        'price',  ((p.price - p.discount) * p.qty) / 100,
+                        'price',  ((p.price - p.discount) * c.qty)::FLOAT / 100,
                         'qty',     c.qty
                       )
                     )
