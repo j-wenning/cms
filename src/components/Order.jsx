@@ -14,7 +14,6 @@ class Order extends React.Component {
 
   componentDidMount() {
     const oid = this.props.location.pathname.split('/').pop();
-    console.log(oid)
     fetch('/api/order' + buildQuery({ oid }))
       .then(res => {
         const json = res.json();
