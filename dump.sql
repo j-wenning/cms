@@ -37,6 +37,37 @@ $$;
 ALTER FUNCTION public.fix_cart_product_qty() OWNER TO cms;
 
 --
+-- Name: prevent_change_submitted(); Type: FUNCTION; Schema: public; Owner: cms
+--
+
+CREATE FUNCTION public.prevent_change_submitted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+RAISE EXCEPTION 'Column ''submitted'' is immutable';
+END;
+$$;
+
+
+ALTER FUNCTION public.prevent_change_submitted() OWNER TO cms;
+
+--
+-- Name: set_submitted(); Type: FUNCTION; Schema: public; Owner: cms
+--
+
+CREATE FUNCTION public.set_submitted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+NEW.submitted = NOW();
+RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.set_submitted() OWNER TO cms;
+
+--
 -- Name: update_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
 --
 
@@ -226,7 +257,8 @@ CREATE TABLE public.orders (
     address integer NOT NULL,
     shipping_method integer NOT NULL,
     payment_method integer NOT NULL,
-    delivered boolean DEFAULT false NOT NULL
+    delivered boolean DEFAULT false NOT NULL,
+    submitted timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -653,7 +685,7 @@ COPY public.images (id, pid, url, alt, img_order) FROM stdin;
 -- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: cms
 --
 
-COPY public.orders (id, cid, address, shipping_method, payment_method, delivered) FROM stdin;
+COPY public.orders (id, cid, address, shipping_method, payment_method, delivered, submitted) FROM stdin;
 \.
 
 
@@ -991,10 +1023,24 @@ CREATE TRIGGER cart_product_qty BEFORE INSERT OR UPDATE ON public.cart_products 
 
 
 --
+-- Name: orders prevent_change_submitted; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER prevent_change_submitted BEFORE UPDATE OF submitted ON public.orders FOR EACH ROW EXECUTE FUNCTION public.prevent_change_submitted();
+
+
+--
 -- Name: products product_qty; Type: TRIGGER; Schema: public; Owner: cms
 --
 
 CREATE TRIGGER product_qty BEFORE UPDATE OF qty ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_product_qty();
+
+
+--
+-- Name: orders set_submitted; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER set_submitted AFTER INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION public.set_submitted();
 
 
 --
