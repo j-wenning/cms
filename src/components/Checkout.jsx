@@ -350,7 +350,7 @@ class Checkout extends React.Component {
                   data-dismiss='modal'
                   type='button'>Cancel</button>
                 <Link
-                  to='/receipt'
+                  to='/orders/'
                   onClick={e => this.handleCheckout(e)}
                   className='btn btn-primary'
                   data-dismiss='modal'>Confirm</Link>
