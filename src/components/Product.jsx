@@ -68,7 +68,8 @@ class Product extends React.Component {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, qty: 1 }),
     }).then(res => { if (!res.ok) throw res.json(); })
-    .catch(err => (async () => console.error(await err))());
+      .then(() => document.dispatchEvent(new Event('cartQtyUpdate')))
+      .catch(err => (async () => console.error(await err))());
   }
 
   doBuyNow() {
