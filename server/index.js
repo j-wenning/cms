@@ -562,6 +562,19 @@ app.delete('/api/cart/product', (req, res, next) => {
     }).catch(err => next({ err }));
 });
 
+app.get('/api/cart/qty', (req, res, next) => {
+  const { cid } = req.session;
+  if (cid == null) return next(userErr('User missing cart', 400));
+  db.query(`
+    SELECT      SUM(cp.qty) AS qty
+    FROM        cart_products AS cp
+    LEFT JOIN   products      AS p  ON(p.id = pid)
+    WHERE       cid = $1;
+  `, [cid])
+    .then(data => res.json(data.rows[0]))
+    .catch(err => next({ err }));
+});
+
 app.get('/api/cart', (req, res, next) => {
   const { cid } = req.session;
   if (cid == null) return next(userErr('User missing cart', 400));
