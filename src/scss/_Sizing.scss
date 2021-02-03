@@ -2,4 +2,8 @@
   .min-vh#{$breakpoint}-100 { min-height: 100vh; }
 
   .w#{$breakpoint}-px-400 { width: 400px; }
+
+  .w#{$breakpoint}-px-1 { width: 1px; }
+
+  .w#{$breakpoint}-0 { width: 0; }
 }
