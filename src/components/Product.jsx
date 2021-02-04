@@ -109,7 +109,6 @@ class Product extends React.Component {
       ratingCount, qty, buyQty
     } = this.state;
     const { prevLocation = '/' } = this.props.location.state || {};
-    console.log(this.props.location)
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
