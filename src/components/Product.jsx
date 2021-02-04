@@ -88,6 +88,11 @@ class Product extends React.Component {
 
   setBuyQty(val) { this.setState({ buyQty: val === '' ? val : Math.min(Math.max(1, val), this.state.qty) }); }
 
+  goBack(prevLocation) {
+    if (prevLocation === '/') return this.props.history.push(prevLocation);
+    this.props.history.goBack();
+  }
+
   preventDefault(e, cb) {
     e.preventDefault();
     cb();
@@ -104,6 +109,7 @@ class Product extends React.Component {
       ratingCount, qty, buyQty
     } = this.state;
     const { prevLocation = '/' } = this.props.location.state || {};
+    console.log(this.props.location)
     const regPrice = (price).toFixed(2);
     const curPrice = (price - discount).toFixed(2);
     const percentOff = (discount / price * 100).toFixed(0);
@@ -149,7 +155,7 @@ class Product extends React.Component {
               <div className='modal-footer justify-content-center justify-content-sm-end'>
                 <Link
                   to={prevLocation}
-                  onClick={e => this.preventDefault(e, () => this.props.history.replace(prevLocation))}
+                  onClick={e => this.preventDefault(e, () => this.goBack(prevLocation) )}
                   className='btn btn-secondary'
                   data-dismiss='modal'>Back to shopping</Link>
                 <Link
