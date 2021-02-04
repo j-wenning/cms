@@ -31,10 +31,17 @@ export default class Cart extends React.Component {
 
   setQuantity(index, val) {
     const { products } = this.state;
-    const setQty = (index, val) => this.setState(state => {
-      state.products[index].qty = val;
-      return state;
-    });
+    const setQty = (index, qty) => {
+      if (qty !== val) {
+        if (qty === 0 && val > 0) alert('Product no longer available');
+        else if (qty < val) alert('Maximum available product reached');
+      }
+      this.setState(state => {
+        const product = state.products[index];
+        product.qty = qty;
+        return state;
+      })
+    };
     if (!val) return setQty(index, val);
     val = Math.min(Math.max(val, 0), 25);
     fetch('/api/cart/product/', {
