@@ -1,9 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom'
+import { Link, withRouter } from 'react-router-dom'
 import Img from './Img';
 import { buildQuery } from './URI';
 
-export default class ProductCard extends React.Component {
+class ProductCard extends React.Component {
   constructor(props) {
     super(props);
     const { img } = props.product;
@@ -50,3 +50,6 @@ export default class ProductCard extends React.Component {
     );
   }
 };
+
+
+export default withRouter(ProductCard);
