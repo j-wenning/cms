@@ -43,7 +43,7 @@ class Order extends React.Component {
     let subtotal = 0;
     return (
       <main>
-        <div className='container'>
+        <div className='container mt-5'>
           <div className='row'>
             <div className='col'>
               <h3>Order Summary</h3>
@@ -52,7 +52,7 @@ class Order extends React.Component {
                   className='badge badge-info'
                   >{shippingMethod[0]?.toLocaleUpperCase() + shippingMethod?.substr(1, shippingMethod.length - 1).toLocaleLowerCase()} shipping</span>
               </h5>
-              <table className='table table-striped table-hover'>
+              <table className='table table-light table-hover'>
                 <thead className='thead-light'>
                   <tr>
                     <th scope='col'>Product</th>
@@ -67,7 +67,9 @@ class Order extends React.Component {
                       subtotal += price;
                       return (
                         <tr key={id}>
-                          <th scope='row'>{name}</th>
+                          <th scope='row'>
+                            <Link to={'/product/' + buildQuery({ id })}>{name}</Link>
+                          </th>
                           <td>{qty}</td>
                           <td>${price.toFixed(2)}</td>
                         </tr>
@@ -86,13 +88,6 @@ class Order extends React.Component {
               <p className='mb-1'>{address2}</p>
               <p className='mb-1'>{city}, {region}</p>
               <p className='mb-1'>{postalCode}</p>
-            </div>
-          </div>
-          <div className='row'>
-            <div className='col'>
-              <Link
-                to='/'
-                className='btn btn-primary'>Back to shopping</Link>
             </div>
           </div>
         </div>
