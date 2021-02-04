@@ -696,6 +696,25 @@ app.delete('/api/user/paymentmethod', (req, res, next) => {
     }).catch(err => next({ err }));
 });
 
+app.get('/api/orders', (req, res, next) => {
+  const { uid } = req.session;
+  if (uid == null) next(userErr('Unauthorized', 401));
+  db.query(`
+    SELECT    o.id,
+              o.submitted,
+              SUM(((p.price - p.discount) * cp.qty)::FLOAT / 100) AS total
+    FROM      orders        AS o
+    JOIN      carts         AS c  ON(c.id = o.cid)
+    JOIN      cart_products AS cp ON(cp.cid = c.id)
+    JOIN      products      AS p  ON(p.id = cp.pid)
+    WHERE     c.uid = $1
+    GROUP BY  o.id
+    ORDER BY  o.submitted;
+  `, [uid])
+    .then(data => res.json(data.rows))
+    .catch(err => next({ err }));
+});
+
 app.get('/api/order', (req, res, next) => {
   const { uid } = req.session;
   const { oid } = req.query;
