@@ -273,7 +273,7 @@ class Product extends React.Component {
                 qty <= 0
                 ? <p className='mb-1 text-danger'>Out of stock</p>
                 : <>
-                    <div className='input-group mb-3 justify-content-end justify-content-md-start'>
+                    <div className='input-group mb-3 justify-content-start'>
                       <div className='input-group-prepend'>
                         <button
                           onClick={() => this.updateBuyQty(-1)}
