@@ -140,14 +140,15 @@ export default class Cart extends React.Component {
             </div>
           }
           <div className='row'>
-            <div className='col-12 d-flex justify-content-between'>
+            <div className={'col-12 d-sm-flex justify-content-sm-between ' + (products.length > 0 ? 'text-center' : 'text-left')}>
               <Link
                 to='/'
                 className={'btn ' + (products.length > 0 ? 'btn-secondary' : 'btn-primary')}
                 >Back to shopping</Link>
+              <br className='d-sm-none' />
               {
                 products.length > 0 &&
-                <Link to='/checkout' className='btn btn-primary'>Proceed to checkout</Link>
+                <Link to='/checkout' className='btn btn-primary mt-3 mt-sm-0'>Proceed to checkout</Link>
               }
             </div>
           </div>
