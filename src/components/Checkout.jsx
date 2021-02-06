@@ -443,8 +443,9 @@ class Checkout extends React.Component {
                       aria-expanded='false'
                       type='button'>Add new</button>
                     <form
+                      style={{ zIndex: 1030 }}
                       onSubmit={e => this.handleAddressSubmit(e)}
-                      className='dropdown-menu p-4'
+                      className='dropdown-menu p-4 overflow-auto'
                       aria-describedby='checkout-address-dropdown'>
                       <div className='form-group'>
                         <label htmlFor='checkout-address-1'>Street address</label>
@@ -471,8 +472,10 @@ class Checkout extends React.Component {
                           id='checkout-address-2' />
                       </div>
                       <div className='row'>
-                        <div className='form-group col-7'>
-                          <label htmlFor='checkout-city'>City</label>
+                        <div className='form-group col-12 col-sm-7'>
+                          <label
+                            htmlFor='checkout-city'
+                            className='text-truncate mw-100'>City</label>
                           <input
                             onChange={e => this.filterInput('city', e.currentTarget.value)}
                             onBlur={() => this.handleBlur('city')}
@@ -486,8 +489,10 @@ class Checkout extends React.Component {
                             <p className='text-danger'>Please enter a city</p>
                           }
                         </div>
-                        <div className='form-group col-5'>
-                          <label htmlFor='checkout-region'>State / Province / Region</label>
+                        <div className='form-group col-12 col-sm-5'>
+                          <label
+                            htmlFor='checkout-region'
+                            className='text-truncate mw-100'>State / Province / Region</label>
                           <input
                             onChange={e => this.filterInput('region', e.currentTarget.value)}
                             onBlur={() => this.handleBlur('region')}
@@ -503,8 +508,10 @@ class Checkout extends React.Component {
                         </div>
                       </div>
                       <div className='row'>
-                        <div className='form-group col-7'>
-                          <label htmlFor='checkout-country'>Country</label>
+                        <div className='form-group col-12 col-sm-7'>
+                          <label
+                            htmlFor='checkout-country'
+                            className='text-truncate mw-100'>Country</label>
                           <select
                             onChange={e => this.filterInput('country', e.currentTarget.value)}
                             onBlur={() => this.handleBlur('country')}
@@ -524,8 +531,10 @@ class Checkout extends React.Component {
                             <p className='text-danger'>Please select a country</p>
                           }
                         </div>
-                        <div className='form-group col-5'>
-                          <label htmlFor='checkout-postal-code'>Postal code</label>
+                        <div className='form-group col-12 col-sm-5'>
+                          <label
+                            htmlFor='checkout-postal-code'
+                            className='text-truncate mw-100'>Postal code</label>
                           <input
                             onChange={e => this.filterInput('postalCode', e.currentTarget.value)}
                             onBlur={() => this.handleBlur('postalCode')}
@@ -601,6 +610,7 @@ class Checkout extends React.Component {
                       aria-expanded='false'
                       type='button'>Add new</button>
                     <form
+                      style={{ zIndex: 1030 }}
                       onSubmit={e => this.handlePaymentMethodSubmit(e)}
                       className='dropdown-menu p-4'
                       aria-describedby='checkout-payment-method-dropdown'>
@@ -701,8 +711,8 @@ class Checkout extends React.Component {
               </div>
             </div>
           </div>
-          <div className='row mx-5'>
-            <div className='col text-right'>
+          <div className='row mx-sm-5'>
+            <div className='col text-center text-sm-right'>
               <button
                 disabled={!canCheckout}
                 className='btn btn-primary'
