@@ -1,10 +1,12 @@
 import React from 'react';
+import { withRouter } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import PriceScale from './PriceScale';
 import { buildQuery } from './URI';
 import { getAdjVals } from './AdjacentValues';
+import { isEqual } from './Object';
 
-export default class ProductList extends React.Component {
+class ProductList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -25,7 +27,7 @@ export default class ProductList extends React.Component {
     return buildQuery({ offset, min, max }, window.location.search);
   }
 
-  applyQuery() { window.location.assign(`/search` + this.formQuery()); }
+  applyQuery() { this.props.history.push(`/search` + this.formQuery()); }
 
   queryOffset(offset) { this.setState({ offset }, () => this.applyQuery()); }
 
@@ -34,18 +36,22 @@ export default class ProductList extends React.Component {
     this.setState({ offset: 0 }, () => this.applyQuery());
   }
 
-  componentDidMount() {
-    (async () => {
-      const query = !this.props.noQuery ? window.location.search : '';
-      const res = await fetch('/api/products' + query);
-      const data = await res.json();
-      if (res.ok) {
+  doFetch() {
+    const query = !this.props.noQuery ? this.props.location.search : '';
+    fetch('/api/products' + query)
+      .then(res => {
+        const json = res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
         const { meta: { search, offset, limit, totalResults }, products } = data;
         this.setState({ search, offset, limit, totalResults, products });
-      }
-      else console.error(data);
-    })();
+      }).catch(err => (async () => console.error(await err))());
   }
+
+  componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
+
+  componentDidMount() { this.doFetch(); }
 
   render() {
     const offset = parseInt(this.state.offset);
@@ -60,7 +66,7 @@ export default class ProductList extends React.Component {
       <div className='container-fluid'>
         <div className='row'>
           <div className='col-12 bg-light py-3'>
-            <h4 className='m-0'>Displaying {offset + 1} - {offsetEnd} of {results} results for <span className='text-primary'>"{search}"</span></h4>
+            <h4 className='m-0'>Displaying {offset + 1} - {offsetEnd} of {results} results for <span className='text-primary'>&ldquo;{search}&rdquo;</span></h4>
           </div>
         </div>
         <div className='row'>
@@ -103,52 +109,38 @@ export default class ProductList extends React.Component {
                   ))
                 }
               </div>
-              {
-                results > this.state.limit &&
-                <div className='row my-5'>
-                  <div className='col-6 col-md-4 mt-3 mt-md-0'>
+              <nav aria-label='test' className='my-5'>
+                <ul className='pagination justify-content-center'>
+                  <li className='page-item'>
                     <button
                       onClick={() => this.queryOffset(offset - limit)}
-                      className='btn btn-outline-primary'
                       disabled={offset <= 0}
-                      type='button'>
-                      <img
-                        className='mr-3 d-none d-md-inline-block'
-                        src='/bootstrap/chevron-left.svg'
-                        alt=''/>
-                      <span>Previous</span>
-                    </button>
-                  </div>
-                  <div className='col-12 col-md-4 order-first order-md-0 d-flex justify-content-between'>
-                    {
-                      pagesArr.map(page => {
-                        const isCurrentPage = page === currentPage;
-                        return (
+                      className={'page-link'}
+                      type='button'>Previous</button>
+                  </li>
+                  {
+                    pagesArr.map(page => {
+                      const isCurrentPage = page === currentPage;
+                      return (
+                        <li key={page} className='page-item'>
                           <button
                             onClick={() => this.queryOffset(limit * (page - 1))}
                             disabled={isCurrentPage}
-                            className={`btn ${isCurrentPage ? 'btn-primary' : 'btn-outline-primary'} border-0`}
-                            key={page}
+                            className={'page-link' + (isCurrentPage ? ' bg-primary text-light' : '')}
                             type='button'>{page}</button>
-                        )
-                      })
-                    }
-                  </div>
-                  <div className='col-6 col-md-4 mt-3 mt-md-0 text-right'>
+                        </li>
+                      )
+                    })
+                  }
+                  <li className='page-item'>
                     <button
                       onClick={() => this.queryOffset(offset + limit)}
                       disabled={offsetEnd >= results}
-                      className='btn btn-outline-primary'
-                      type='button'>
-                      <span>Next</span>
-                      <img
-                        className='ml-3 d-none d-md-inline-block'
-                        src='/bootstrap/chevron-right.svg'
-                        alt=''/>
-                    </button>
-                  </div>
-                </div>
-              }
+                      className='page-link'
+                      type='button'>Next</button>
+                  </li>
+                </ul>
+              </nav>
             </div>
           </div>
         </div>
@@ -156,3 +148,5 @@ export default class ProductList extends React.Component {
     );
   }
 };
+
+export default withRouter(ProductList);

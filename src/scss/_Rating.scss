@@ -1,0 +1,57 @@
+$rating-icon-height: 20px;
+$rating-icon-width: 10px;
+
+@mixin rating($breakpoint: '') {
+  @if $breakpoint == null {
+    .rating-bar {
+      display: flex;
+      width: fit-content;
+      align-items: flex-end;
+    }
+
+    .rating-bar > div {
+      display: flex;
+      align-items: center;
+      padding: 3px;
+      margin-right: 3px;
+      border-radius: $border-radius;
+      background-color: $light;
+    }
+
+    .rating-input { display: none; }
+
+    .rating-input ~ .rating-icon {
+      cursor: pointer;
+      background: url(/bootstrap/star.svg) center / cover no-repeat;
+      filter: invert(77%)
+              sepia(63%)
+              saturate(2526%)
+              hue-rotate(354deg)
+              brightness(108%)
+              contrast(101%);
+      width: $rating-icon-width;
+      height: $rating-icon-height;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+
+      &:hover {
+        filter: invert(43%)
+                sepia(70%)
+                saturate(5293%)
+                hue-rotate(197deg)
+                brightness(98%)
+                contrast(111%);
+      }
+
+      &:nth-of-type(2n) { background-position: right; }
+
+      &:nth-of-type(2n + 1) { background-position: left; }
+    }
+
+    .rating-input:checked + .rating-icon,
+    .rating-input ~ .rating-icon:hover {
+      background-image: url(/bootstrap/star-fill.svg);
+    }
+  }
+}

@@ -1,4 +1,4 @@
-export const parseQuery = query => {
+export const parseQuery = (query = '') => {
   const result = {};
   (/^\?/.test(query) ? query.substr(1) : query).split('&').forEach(pair => {
     const [key, val] = pair.split('=');
@@ -7,7 +7,7 @@ export const parseQuery = query => {
   return result;
 };
 
-export const buildQuery = (obj, query = '') => {
+export const buildQuery = (obj = {}, query = '') => {
   const resObj = Object.assign(parseQuery(query), obj);
   let result = '?';
   for (const key in resObj) {

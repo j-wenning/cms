@@ -12,6 +12,56 @@ $product-description-line-max: 10 !default;
 
 
 @mixin product($breakpoint: '') {
+  @if $breakpoint == null {
+    .product-modal-dialog {
+      display: flex;
+      height: 100vh;
+      min-height: unset;
+      width: 100%;
+      max-width: unset;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+
+    .product-modal-content { max-width: 90%; }
+
+    .product-modal-img,
+    .product-preview,
+    .product-thumbnail {
+      object-fit: contain;
+    }
+
+    .product-modal-img {
+      width: 100%;
+      max-height: 85vh;
+    }
+
+    .product-preview {
+      height: 300px;
+      width: 100%;
+    }
+
+    .product-thumbnail {
+      height: 100px;
+      width: 100px;
+    }
+
+    .product-qty-input {
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      width: 75px !important;
+      flex: unset !important;
+      -moz-appearance:textfield;
+    }
+
+    .product-markdown img { max-width: 100%; }
+  }
+
   @for $i from 1 through $product-col-count {
     .product-col#{$breakpoint}-#{$i} {
       @include make-col-ready();

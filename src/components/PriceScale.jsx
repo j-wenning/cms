@@ -31,10 +31,12 @@ export default class PriceScale extends React.Component {
   }
 
   componentDidMount() {
-    (async () => {
-      const res = await fetch('/api/products/prices' + window.location.search);
-      const data = await res.json();
-      if (res.ok) {
+    fetch('/api/products/prices' + window.location.search)
+      .then(res => {
+        const json = res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
         let { min, max } = data;
         const query = new URLSearchParams(window.location.search);
         let qMin = query.get('min');
@@ -46,9 +48,7 @@ export default class PriceScale extends React.Component {
           priceRange: [qMin, qMax],
           updated: true
         }, () => this.setRange(this.state.priceRange));
-      }
-      else console.error(data);
-    })();
+      }).catch(err => (async () => console.error(await err))());
   }
 
   render() {

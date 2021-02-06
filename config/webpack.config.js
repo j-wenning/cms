@@ -396,7 +396,7 @@ module.exports = function (webpackEnv) {
                 customize: require.resolve(
                   'babel-preset-react-app/webpack-overrides'
                 ),
-                
+
                 plugins: [
                   [
                     require.resolve('babel-plugin-named-asset-import'),
@@ -441,7 +441,7 @@ module.exports = function (webpackEnv) {
                 cacheDirectory: true,
                 // See #6846 for context on why cacheCompression is disabled
                 cacheCompression: false,
-                
+
                 // Babel sourcemaps are needed for debugging into node_modules
                 // code.  Without the options below, debuggers like VSCode
                 // show incorrect code and set breakpoints on the wrong lines.
@@ -464,6 +464,7 @@ module.exports = function (webpackEnv) {
                 sourceMap: isEnvProduction
                   ? shouldUseSourceMap
                   : isEnvDevelopment,
+                url: false,
               }),
               // Don't consider CSS imports dead code even if the
               // containing package claims to have no side effects.
@@ -483,6 +484,7 @@ module.exports = function (webpackEnv) {
                 modules: {
                   getLocalIdent: getCSSModuleLocalIdent,
                 },
+                url: false,
               }),
             },
             // Opt-in support for SASS (using .scss or .sass extensions).
@@ -497,6 +499,7 @@ module.exports = function (webpackEnv) {
                   sourceMap: isEnvProduction
                     ? shouldUseSourceMap
                     : isEnvDevelopment,
+                  url: false,
                 },
                 'sass-loader'
               ),
@@ -519,6 +522,7 @@ module.exports = function (webpackEnv) {
                   modules: {
                     getLocalIdent: getCSSModuleLocalIdent,
                   },
+                  url: false,
                 },
                 'sass-loader'
               ),

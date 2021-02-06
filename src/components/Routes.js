@@ -1,23 +1,45 @@
 import Home from './Home';
 import Search from './Search';
-import _404 from './404'
+import Product from './Product';
+import Cart from './Cart';
+import Checkout from './Checkout';
+import Order from './Order';
+import Orders from './Orders';
+import _404 from './404';
 
 const routes = [
   {
     path: '/',
     component: Home,
-    routes: []
   },
   {
     path: '/search',
     component: Search,
-    routes: []
+  },
+  {
+    path: '/product',
+    component: Product,
+  },
+  {
+    path: '/cart',
+    component: Cart,
+  },
+  {
+    path: '/checkout',
+    component: Checkout,
+  },
+  {
+    path: '/orders/:oid',
+    component: Order,
+  },
+  {
+    path: '/orders',
+    component: Orders,
   },
   {
     path: '*',
     component: _404,
-    routes: []
-  }
+  },
 ];
 
 Object.freeze(routes);

@@ -1,45 +1,55 @@
 import React from 'react';
+import { Link, withRouter } from 'react-router-dom'
+import Img from './Img';
+import { buildQuery } from './URI';
 
-export default class ProductCard extends React.Component {
+class ProductCard extends React.Component {
   constructor(props) {
     super(props);
-    this.defaultImg = 'Default.svg';
-    const { 'image_url': image = this.defaultImg, name, description, price, discount } = props.product;
-    this.state = { image };
-    this.name = name;
-    this.price = price;
-    this.description = description;
-    this.regPrice = (price).toFixed(2);
-    this.curPrice = (price - discount).toFixed(2);
-    this.discount = (discount / price * 100).toFixed(0);
+    const { img } = props.product;
+    const { url, alt } = (img || {});
+    this.state = { url, alt };
   }
 
   render() {
+    const { id, name, description, price, discount } = this.props.product;
+    const regPrice = (price).toFixed(2);
+    const curPrice = (price - discount).toFixed(2);
+    const percentOff = (discount / price * 100).toFixed(0);
+    const query = buildQuery({ id });
     return (
-      <div className={'p-0 card d-inline-block whitespace-normal ' + this.props?.className}>
+      <Link
+        to={{
+          pathname: '/product',
+          search: query,
+          state: { prevLocation: this.props.location }
+        }}
+        className={'p-0 card d-inline-block whitespace-normal text-reset text-decoration-none ' + this.props?.className}>
         <div className='card-body d-flex flex-column justify-content-between'>
           <div className='mb-2 card-img-top text-center'>
-            <img
-              className={this.props?.imgClass}
-              src={`/images/${this.state.image}`}
-              onError={() => this.setState({ image: this.defaultImg })}
-              alt='' />
+            <Img
+              src={this.state.url}
+              alt={this.state.alt}
+              className={this.props?.imgClass} />
           </div>
-          <h5 title={this.name} className='card-title text-truncate'>{this.name}</h5>
+          <h5 title={name} className='card-title text-truncate'>{name}</h5>
           {
             !this.props.hideDesc &&
-            <p title={this.description} className={'card-text text-featured ' + this.props.descClass}>{this.description}</p>
+            <p title={description} className={'card-text text-featured ' + this.props.descClass}>{description}</p>
           }
-          <p title={`$${this.curPrice}`} className={'mb-0 card-text text-warning'}>&#36;{this.curPrice}</p>
+          <p title={`$${curPrice}`} className={'mb-0 card-text text-warning'}>&#36;{curPrice}</p>
           <p className='card-text text-truncate'>
             {
-              this.discount > 0
-              ? <><del>&#36;{this.regPrice}</del> (<small>{this.discount}% off</small>)</>
+              discount > 0
+              ? <><del>&#36;{regPrice}</del> (<small>{percentOff}% off</small>)</>
               : <>&nbsp;</>
             }
           </p>
         </div>
-      </div>
+      </Link>
     );
   }
 };
+
+
+export default withRouter(ProductCard);
