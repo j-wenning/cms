@@ -666,14 +666,10 @@ app.delete('/api/user/address', (req, res, next) => {
   if (err) return next(err);
   db.query(`
     DELETE FROM addresses
-    WHERE       uid = $1 AND id = $2
-    RETURNING   id;
+    WHERE       uid = $1 AND id = $2;
   `, [uid, id])
-    .then(data => {
-      if (data.rows.length === 0) return next(userErr('Entry not present for current user', 404));
-      const { id } = data.rows[0];
-      res.json({ id });
-    }).catch(err => next({ err }));
+    .then(() => res.sendStatus(204))
+    .catch(err => next({ err }));
 });
 
 app.delete('/api/user/paymentmethod', (req, res, next) => {
@@ -686,14 +682,10 @@ app.delete('/api/user/paymentmethod', (req, res, next) => {
   if (err) return next(err);
   db.query(`
     DELETE FROM payment_methods
-    WHERE       uid = $1 AND id = $2
-    RETURNING   id;
+    WHERE       uid = $1 AND id = $2;
   `, [uid, id])
-    .then(data => {
-      if (data.rows.length === 0) return next(userErr('Entry not present for current user', 404));
-      const { id } = data.rows[0];
-      res.json({ id });
-    }).catch(err => next({ err }));
+    .then(() => res.sendStatus(204))
+    .catch(err => next({ err }));
 });
 
 app.get('/api/orders', (req, res, next) => {
