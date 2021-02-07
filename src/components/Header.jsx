@@ -88,6 +88,13 @@ class Header extends React.Component {
               <li className='mr-0 mt-2 mr-md-2 mt-md-0'>
                 <Link to='/orders' className='btn btn-outline-secondary'>Orders</Link>
               </li>
+              <li className='mr-0 mt-2 mr-md-2 mt-md-0'>
+                <button
+                  className='btn btn-outline-secondary'
+                  type='button'>
+                    <img src="/bootstrap/person.svg" alt="Profile"/>
+                  </button>
+              </li>
             </ul>
           </div>
         </nav>
