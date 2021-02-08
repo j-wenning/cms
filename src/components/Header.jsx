@@ -93,7 +93,7 @@ class Header extends React.Component {
                     placeholder='Search'
                     aria-label='Search' />
                   <div className='input-group-append'>
-                    <button className='btn btn-outline-secondary' type='submit' data-toggle='collapse' data-target='#navbarSearch'>
+                    <button className='btn btn-outline-secondary' type='submit'>
                       <img src='/bootstrap/search.svg' alt='Search' />
                     </button>
                   </div>
@@ -132,14 +132,10 @@ class Header extends React.Component {
                     <hr className='dropdown-divider' />
                     <Link
                       to='/orders'
-                      className='dropdown-item'
-                      data-toggle='collapse'
-                      data-target='#navbarSearch'>Orders</Link>
+                      className='dropdown-item'>Orders</Link>
                     <Link
                       to='/users'
-                      className='dropdown-item'
-                      data-toggle='collapse'
-                      data-target='#navbarSearch'>Switch User</Link>
+                      className='dropdown-item'>Switch User</Link>
                   </div>
                 </div>
               </li>
