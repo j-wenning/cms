@@ -17,6 +17,37 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: delete_user_detail(); Type: FUNCTION; Schema: public; Owner: cms
+--
+
+CREATE FUNCTION public.delete_user_detail() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+f_col TEXT := TG_ARGV[0];
+f_table TEXT := TG_ARGV[1];
+should_delete BOOL;
+BEGIN
+EXECUTE FORMAT(
+'(SELECT NOT EXISTS(SELECT 1 FROM orders WHERE %I = %L));',
+f_col, OLD.id
+) INTO should_delete;
+IF should_delete THEN
+RETURN  OLD;
+ELSE
+EXECUTE FORMAT(
+'UPDATE %I SET uid = NULL WHERE id = %L',
+f_table, OLD.id
+);
+RETURN  NULL;
+END IF;
+END;
+$$;
+
+
+ALTER FUNCTION public.delete_user_detail() OWNER TO cms;
+
+--
 -- Name: fix_cart_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
 --
 
@@ -1020,6 +1051,20 @@ ALTER TABLE ONLY public.users
 --
 
 CREATE TRIGGER cart_product_qty BEFORE INSERT OR UPDATE ON public.cart_products FOR EACH ROW EXECUTE FUNCTION public.fix_cart_product_qty();
+
+
+--
+-- Name: addresses delete_address; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER delete_address BEFORE DELETE ON public.addresses FOR EACH ROW EXECUTE FUNCTION public.delete_user_detail('address', 'addresses');
+
+
+--
+-- Name: payment_methods delete_payment_method; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER delete_payment_method BEFORE DELETE ON public.payment_methods FOR EACH ROW EXECUTE FUNCTION public.delete_user_detail('payment_method', 'payment_methods');
 
 
 --
