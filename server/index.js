@@ -134,6 +134,8 @@ app.use(async (req, res, next) => {
   } catch (err) { next({ err }); }
 });
 
+app.get('/api/user', (req, res) => res.json({ uid: req.session.uid }));
+
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
   db.query(`
