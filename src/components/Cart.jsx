@@ -13,15 +13,15 @@ export default class Cart extends React.Component {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
-    }).then(res => {
-      const json = res.json();
+    }).then(async res => {
+      const json = await res.json();
       if (res.ok) return json;
       throw json;
     }).then(data => {
       const { id } = data;
       const products = this.state.products.filter(product => product.id !== id);
       this.setState({ products });
-    }).catch(err => (async () => console.error(await err))());
+    }).catch(err => console.error(err));
   }
 
   updateQuantity(index, val) {
@@ -55,17 +55,17 @@ export default class Cart extends React.Component {
     }).then(data => {
       const { qty } = data;
       setQty(index, qty);
-    }).catch(err => (async () => console.error(await err))());
+    }).catch(err => console.error(err));
   }
 
   componentDidMount() {
     fetch('/api/cart')
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => this.setState({ products: data }))
-      .catch(err => (async () => console.error(await err))());
+      .catch(err => console.error(err));
   }
 
   render() {

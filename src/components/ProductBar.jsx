@@ -44,8 +44,8 @@ export default class ProductBar extends React.Component {
     const signal = this.controller.signal;
     query = buildQuery(query);
     fetch('/api/products' + location + query, { signal })
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
@@ -53,7 +53,7 @@ export default class ProductBar extends React.Component {
         const fetchCB = this.props.fetchCB;
         this.setState({ products });
         if (fetchCB) fetchCB(products);
-      }).catch(err => (async () => console.error(await err))());
+      }).catch(err => console.error(err));
   }
 
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }

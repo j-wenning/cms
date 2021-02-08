@@ -27,26 +27,26 @@ class Header extends React.Component {
 
   fetchCartQty() {
     fetch('/api/cart/qty')
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
         const { qty: cartQty } = data;
         this.setState({ cartQty });
-      }).catch(err => (async () => console.error(await err))());
+      }).catch(err => console.error(err));
   }
 
   fetchUser() {
     fetch('/api/user')
-    .then(res => {
-      const json = res.json();
-      if (res.ok) return json;
-      throw json;
-    }).then(data => {
-      const { uid } = data;
-      this.setState({ uid });
-    }).catch(err => (async () => console.error(await err))());
+      .then(async res => {
+        const json = await res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
+        const { uid } = data;
+        this.setState({ uid });
+      }).catch(err => console.error(err));
   }
 
   componentDidMount() {

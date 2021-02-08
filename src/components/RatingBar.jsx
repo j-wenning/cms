@@ -12,9 +12,12 @@ export default class RatingBar extends React.Component {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating, id: this.props.id })
-      }).then(res => res.json())
-        .then(data => this.setState({ rating: data.rating }))
-        .catch(err => (async () => console.error(await err))());
+      }).then(async res => {
+        const json = await res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => this.setState({ rating: data.rating }))
+        .catch(err => console.error(err));
     }
   }
 

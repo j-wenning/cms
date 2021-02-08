@@ -15,15 +15,15 @@ class Order extends React.Component {
   componentDidMount() {
     const oid = this.props.location.pathname.split('/').pop();
     fetch('/api/order' + buildQuery({ oid }))
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
         const { products, address, shippingMethod } = data;
         this.setState({ products, address, shippingMethod });
       }).catch(err => {
-        (async () => console.error(await err))();
+        console.error(err);
         this.props.history.goBack();
       });
   }

@@ -248,8 +248,8 @@ class Checkout extends React.Component {
     let { pid, shipping } = parseQuery(this.props.location.search);
     let promise;
     fetch('/api/user/checkout')
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
@@ -261,7 +261,7 @@ class Checkout extends React.Component {
         if (!paymentMethods) paymentMethods = [];
         else curPaymentMethod = paymentMethods[0];
         this.setState({ addresses, paymentMethods, curAddress, curPaymentMethod });
-      }).catch(err => (async () => console.error(await err))());
+      }).catch(err => console.error(err));
     if (pid != null) {
       promise = new Promise(res => {
         const { methods, method } = JSON.parse(atob(shipping));
@@ -284,7 +284,7 @@ class Checkout extends React.Component {
           else curShippingMethod = shippingMethods[0];
           this.setState({ shippingMethods, curShippingMethod });
           return shippingMethods;
-        }).catch(err => (async () => console.error(await err))());
+        }).catch(err => console.error(err));
     }
     Promise.all([promise]).then(data => {
       const [{ length }] = data;

@@ -39,8 +39,8 @@ class Product extends React.Component {
     if (this.state.id === id) return;
     this.setState({ id });
     fetch('/api/product' + query)
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
@@ -58,7 +58,7 @@ class Product extends React.Component {
           shippingMethods: shippingMethods || [],
           shippingMethod: shippingMethods?.[0],
         });
-      }).catch(err => (async () => console.error(await err))());
+      }).catch(err => console.error(err));
   }
 
   doCartFetch() {
@@ -69,7 +69,7 @@ class Product extends React.Component {
       body: JSON.stringify({ id, qty: 1 }),
     }).then(res => { if (!res.ok) throw res.json(); })
       .then(() => document.dispatchEvent(new Event('cartQtyUpdate')))
-      .catch(err => (async () => console.error(await err))());
+      .catch(err => console.error(err));
   }
 
   doBuyNow() {
