@@ -83,7 +83,7 @@ class Header extends React.Component {
           </Link>
           <div className='collapse navbar-collapse' id='navbarSearch'>
             <ul className='navbar-nav w-100 mt-2 mt-md-0 pb-2 pb-md-0'>
-              <li className='w-md-px-400 justify-self-start'>
+              <li className='w-md-px-400 justify-self-start mt-3 mt-md-0'>
                 <form onSubmit={e => this.handleSubmit(e)} className='input-group'>
                   <input
                     onChange={e => this.handleInput(e)}
@@ -100,6 +100,7 @@ class Header extends React.Component {
                 </form>
               </li>
               <li className='col' />
+              <hr className='d-md-none dropdown-divider mt-3' />
               <li className='d-md-none mt-2'>User {uid}</li>
               <li className='d-md-none mt-2'>
                 <Link
