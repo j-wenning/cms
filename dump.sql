@@ -328,7 +328,7 @@ CREATE TABLE public.payment_methods (
     security_code smallint NOT NULL,
     name character varying(255) NOT NULL,
     expiry date NOT NULL,
-    CONSTRAINT valid_date CHECK (((date_part('month'::text, expiry) >= date_part('month'::text, CURRENT_DATE)) AND (date_part('year'::text, expiry) >= date_part('year'::text, CURRENT_DATE)))),
+    CONSTRAINT valid_date CHECK ((date_trunc('month'::text, (expiry)::timestamp with time zone) >= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))),
     CONSTRAINT valid_name CHECK (((name)::text !~ '([^\w'' ]|\d|_)'::text))
 );
 
@@ -1011,7 +1011,7 @@ ALTER TABLE ONLY public.orders
 --
 
 ALTER TABLE ONLY public.payment_methods
-    ADD CONSTRAINT unique_payment_method UNIQUE (card_number, security_code, name, expiry);
+    ADD CONSTRAINT unique_payment_method UNIQUE (uid, card_number, security_code, name, expiry);
 
 
 --
