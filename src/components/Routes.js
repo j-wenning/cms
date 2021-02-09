@@ -5,6 +5,7 @@ import Cart from './Cart';
 import Checkout from './Checkout';
 import Order from './Order';
 import Orders from './Orders';
+import Users from './Users';
 import _404 from './404';
 
 const routes = [
@@ -35,6 +36,10 @@ const routes = [
   {
     path: '/orders',
     component: Orders,
+  },
+  {
+    path: '/users',
+    component: Users,
   },
   {
     path: '*',
