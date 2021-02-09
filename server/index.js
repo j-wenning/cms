@@ -91,9 +91,8 @@ app.use(
 
 app.use(express.json());
 
-// temporary middleware for forcing an existing user id
 app.use((req, res, next) => {
-  req.session.uid = 1;
+  if (req.session.uid == null) req.session.uid = 1;
   next();
 });
 
@@ -134,7 +133,33 @@ app.use(async (req, res, next) => {
   } catch (err) { next({ err }); }
 });
 
+app.post('/api/user', (req, res, next) => {
+  let { uid } = req.body;
+  const err = verifyMultiple(
+    [uid, true, isPosNumOfMinLength],
+  );
+  if (err) return next(err);
+  db.query(`
+    SELECT  id AS uid
+    FROM    users
+    WHERE   id = $1;
+  `, [uid])
+    .then(data => {
+      if (data.rows.length === 0) return userErr('Not found', 401);
+      req.session.uid = data.rows[0].uid;
+      res.sendStatus(200);
+    }).catch(err => next({ err }));
+});
+
 app.get('/api/user', (req, res) => res.json({ uid: req.session.uid }));
+
+app.get('/api/users', (req, res, next) => {
+  db.query(`
+    SELECT  id AS uid
+    FROM    users;
+  `).then(data => res.json(data.rows))
+    .catch(err => next({ err }));
+});
 
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
