@@ -15,7 +15,8 @@ class ProductList extends React.Component {
       limit: 0,
       totalResults: 0,
       products: [],
-      range: [0, 0]
+      range: [0, 0],
+      deals: false,
     };
   }
 
@@ -23,8 +24,8 @@ class ProductList extends React.Component {
 
   formQuery() {
     let [min, max] = this.state.range.map(val => parseInt(val) || 0);
-    const { offset } = this.state;
-    return buildQuery({ offset, min, max }, window.location.search);
+    const { offset, deals } = this.state;
+    return buildQuery({ offset, min, max, deals }, this.props.location.search);
   }
 
   applyQuery() { this.props.history.push(`/search` + this.formQuery()); }
@@ -54,11 +55,16 @@ class ProductList extends React.Component {
   componentDidMount() { this.doFetch(); }
 
   render() {
-    const offset = parseInt(this.state.offset);
-    const offsetEnd = offset + this.state.products.length;
-    const results = this.state.totalResults;
-    const search = this.state.search;
-    const limit = this.state.limit;
+    let {
+      totalResults: results,
+      search,
+      limit,
+      products,
+      offset,
+      deals,
+    } = this.state;
+    offset = parseInt(offset);
+    const offsetEnd = offset + products.length;
     const currentPage = offset / limit + 1;
     const totalPages = Math.ceil(results / limit);
     const pagesArr = getAdjVals(currentPage, 2, 1, totalPages);
@@ -88,7 +94,20 @@ class ProductList extends React.Component {
                   <form onSubmit={e => this.handleSubmit(e)}>
                     <h4 className='navbar-text'>Price Scale</h4>
                     <PriceScale setRange={range => this.setRange(range)} />
-                    <button className='btn btn-primary' type='submit'>Submit</button>
+                    <div className='form-row'>
+                      <div className='form-check navbar-text'>
+                        <input
+                          value={deals}
+                          onChange={() => this.setState({ deals: !deals })}
+                          id='products-filter-deals'
+                          className='form-check-input'
+                          type='checkbox' />
+                        <label htmlFor='products-filter-deals' className='form-check-label'>Deals</label>
+                      </div>
+                    </div>
+                    <div className='form-row'>
+                      <button className='btn btn-primary' type='submit'>Submit</button>
+                    </div>
                   </form>
                 </li>
               </ul>
