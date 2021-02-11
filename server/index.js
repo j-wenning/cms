@@ -54,6 +54,7 @@ const isNum = val => /[^0-9]/g.test(val.toString()) ? 'number' : null;
 const isPosNum = val => isNum(val) || (val < 0) ? 'positive number' : null;
 const isPosNumOfMinLength = (val, min = 1) => isPosNum(val) || (val.toString().length < min) ? 'positive number of min length ' + min : null;
 const isPosNumOfMaxLength = (val, max = 1) => isPosNum(val) || (val.toString().length > max) ? 'positive number of max length ' + max : null;
+const isPosNumBetweenLengths = (val, min = 1, max = 1) => isPosNumOfMinLength(val, min) || isPosNumOfMaxLength(val, max) ? `positive number between lengths ${min} and ${max}` : null;
 const isPosNumOfLength = (val, length = 1) => isPosNum(val) || (val.toString().length !== length) ? 'positive number of length ' + length : null;
 const isValidRating = val => val < 1 || val > 10 ? 'valid rating' : null;
 const isStr = val => typeof val === typeof String() ? null : 'string';
@@ -229,11 +230,13 @@ app.get('/api/products', (req, res, next) => {
     min = null,
     max = null,
     offset = 0,
+    minRating = null,
   } = req.query;
   const err = verifyMultiple(
     [min, false, isPosNum],
     [max, false, isPosNum],
     [offset, false, isPosNum],
+    [minRating, false, isPosNumBetweenLengths, 1, 10],
   );
   if (err) return next(err);
   deals = deals === 'true';
@@ -241,56 +244,62 @@ app.get('/api/products', (req, res, next) => {
   if (min) min = parseInt(min) * 100;
   if (max) max = parseInt(max) * 100;
   db.query(`
-    SELECT    p.id,
-              p.name,
-              p.price,
-              p.discount,
-              ${prodImgSelect('p')},
-              (
-                SELECT    p.description
-                WHERE     $1 = FALSE
-              ),
-              COUNT(*) OVER() AS total_results
-    FROM      products  AS p
-    LEFT JOIN tags      AS t ON t.pid = p.id
-    WHERE     (
-                $1                =     FALSE
-                OR p.discount     >     0
-              )
-              AND (
-                $2::TEXT          IS    NULL
-                OR p.name         ~*    $2::TEXT
-                OR p.description  ~*    $2::TEXT
-                OR t.name         LIKE  $2::TEXT
-              )
-              AND (
-                $3::INTEGER       IS    NULL
-                OR $3::INTEGER    <=    p.price - p.discount
-              )
-              AND (
-                $4::INTEGER       IS    NULL
-                OR $4::INTEGER    >=    p.price - p.discount
-              )
-    GROUP BY  p.id
+    WITH  products_cte          AS (
+      SELECT    p.id,
+                p.name,
+                p.price::FLOAT / 100 AS price,
+                p.discount::FLOAT / 100 AS discount,
+                ${prodImgSelect('p')},
+                (
+                  SELECT    p.description
+                  WHERE     $1 = FALSE
+                ),
+                (
+                  SELECT  AVG(r.rating)
+                  FROM    ratings AS r
+                  WHERE   r.pid = p.id
+                ) AS avg_rating
+      FROM      products          AS p
+      LEFT JOIN tags              AS t ON t.pid = p.id
+      WHERE     (
+                  $1                =     FALSE
+                  OR p.discount     >     0
+                )
+                AND (
+                  $2::TEXT          IS    NULL
+                  OR p.name         ~*    $2::TEXT
+                  OR p.description  ~*    $2::TEXT
+                  OR t.name         LIKE  $2::TEXT
+                )
+                AND (
+                  $3::INTEGER       IS    NULL
+                  OR $3::INTEGER    <=    p.price - p.discount
+                )
+                AND (
+                  $4::INTEGER       IS    NULL
+                  OR $4::INTEGER    >=    p.price - p.discount
+                )
+      GROUP BY  p.id
+    )
+    SELECT JSON_BUILD_OBJECT(
+      'meta', JSON_BUILD_OBJECT(
+        'search', $2,
+        'limit',  $5::INTEGER,
+        'offset', $6::INTEGER,
+        'total_results', COUNT(*) OVER()
+      ),
+      'products', COALESCE(JSON_AGG(p), '[]')
+    ) AS obj
+    FROM products_cte AS p
+    WHERE   (
+              $7::INTEGER                     IS      NULL
+              OR $7::INTEGER                  <=      avg_rating
+            )
     LIMIT     $5
     OFFSET    $6;
-  `, [deals, search, min, max, productLimit, offset])
-    .then(data => {
-      res.json({
-        meta: {
-          search,
-          limit: productLimit,
-          offset,
-          totalResults: data.rows[0]?.total_results
-        },
-        products: data.rows.map(row => {
-          delete row.total_results;
-          row.price /= 100;
-          row.discount /= 100;
-          return row;
-        })
-      });
-    }).catch(err => next({ err }));
+  `, [deals, search, min, max, productLimit, offset, minRating])
+    .then(data => res.json(formatKeys(data.rows[0].obj)))
+    .catch(err => next({ err }));
 });
 
 app.put('/api/product/rating', (req, res, next) => {
