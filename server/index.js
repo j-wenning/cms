@@ -162,6 +162,17 @@ app.get('/api/users', (req, res, next) => {
     .catch(err => next({ err }));
 });
 
+app.get('/api/products/shippingmethods', (req, res, next) => {
+  db.query(`
+    SELECT    sm.*
+    FROM      shipping          AS s
+    LEFT JOIN shipping_methods  AS sm ON(sm.id = s.shipping_method)
+    GROUP BY  sm.id
+    ORDER BY  sm.id;
+  `).then(data => res.json(data.rows))
+    .catch(err => next({ err }));
+});
+
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
   db.query(`
@@ -231,7 +242,7 @@ app.get('/api/products', (req, res, next) => {
     max = null,
     offset = 0,
     minRating = null,
-    shippingMethods = null,
+    shippingMethods = [],
   } = req.query;
   const err = verifyMultiple(
     [min, false, isPosNum],
@@ -245,8 +256,12 @@ app.get('/api/products', (req, res, next) => {
   if (typeof shippingMethods === typeof String()) {
     shippingMethods = shippingMethods
       .split(',')
-      .map(method => parseInt(method))
-      .filter(method => method != null);
+      .map(method => {
+        const parsed = parseInt(method);
+        return !isNaN(parsed) && `${parsed}`.length === method.length
+          ? parsed
+          : null;
+      }).filter(method => method !== null);
   }
   db.query(`
     WITH  products_cte          AS (
@@ -255,10 +270,7 @@ app.get('/api/products', (req, res, next) => {
                 p.price::FLOAT / 100 AS price,
                 p.discount::FLOAT / 100 AS discount,
                 ${prodImgSelect('p')},
-                (
-                  SELECT    p.description
-                  WHERE     $1 = FALSE
-                ),
+                p.description,
                 (
                   SELECT  ARRAY_AGG(s.shipping_method)
                   FROM    shipping AS s
@@ -306,7 +318,7 @@ app.get('/api/products', (req, res, next) => {
               OR $7::INTEGER                  <=      avg_rating
             )
             AND (
-              $8::INTEGER[]                   IS      NULL
+              ARRAY_LENGTH($8::INTEGER[], 1)  IS      NULL
               OR $8::INTEGER[] & (
                 SELECT  ARRAY_AGG(id)
                 FROM    shipping_methods
