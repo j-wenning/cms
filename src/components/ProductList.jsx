@@ -104,7 +104,7 @@ class ProductList extends React.Component {
           </div>
         </div>
         <div className='row'>
-          <div className='d-lg-block col-12 col-lg-3 navbar navbar-expand-lg align-items-start navbar-dark bg-dark'>
+          <div className='d-lg-block col-12 col-lg-3 col-xl-2 navbar navbar-expand-lg align-items-start navbar-dark bg-dark'>
             <h1 className='navbar-brand'>Filters</h1>
             <button
               className='navbar-toggler'
@@ -162,7 +162,7 @@ class ProductList extends React.Component {
               </ul>
             </div>
           </div>
-          <div className='col-12 col-lg-9 mt-3 mt-lg-0'>
+          <div className='col-12 col-lg-9 col-xl-10 mt-3 mt-lg-0'>
             <div className='container-fluid'>
               <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5'>
                 {
