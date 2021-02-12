@@ -2,7 +2,7 @@ import React from 'react';
 import { withRouter } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import PriceScale from './PriceScale';
-import { buildQuery } from './URI';
+import { parseQuery, buildQuery } from './URI';
 import { getAdjVals } from './AdjacentValues';
 import { isEqual } from './Object';
 
@@ -17,15 +17,22 @@ class ProductList extends React.Component {
       products: [],
       range: [0, 0],
       deals: false,
+      shippingMethods: [],
+      selectedShipping: [],
     };
   }
 
   setRange(range) { this.setState({ range }); }
 
+  setShippingMethod(method, selected) {
+    if (selected) this.setState({ selectedShipping: [...new Set([...this.state.selectedShipping, method])] });
+    else this.setState({ selectedShipping: this.state.selectedShipping.filter(m => m !== method) });
+  }
+
   formQuery() {
     let [min, max] = this.state.range.map(val => parseInt(val) || 0);
-    const { offset, deals } = this.state;
-    return buildQuery({ offset, min, max, deals }, this.props.location.search);
+    const { offset, deals, selectedShipping: shippingMethods } = this.state;
+    return buildQuery({ offset, min, max, deals, shippingMethods }, this.props.location.search);
   }
 
   applyQuery() { this.props.history.push(`/search` + this.formQuery()); }
@@ -52,7 +59,25 @@ class ProductList extends React.Component {
 
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
 
-  componentDidMount() { this.doFetch(); }
+  componentDidMount() {
+    let { deals, shippingMethods: selectedShipping } = parseQuery(this.props.location.search);
+    this.doFetch();
+    selectedShipping = selectedShipping?.split(',')
+      .map(method => {
+        const parsed = parseInt(method);
+        return !isNaN(parsed) && `${parsed}`.length === method.length
+          ? parsed
+          : null;
+      }).filter(method => method !== null) || [];
+    this.setState({ deals, selectedShipping });
+    fetch('/api/products/shippingmethods')
+      .then(async res => {
+        const json = await res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => this.setState({ shippingMethods: data }))
+      .catch(err => console.error(err));
+  }
 
   render() {
     let {
@@ -62,12 +87,15 @@ class ProductList extends React.Component {
       products,
       offset,
       deals,
+      shippingMethods,
+      selectedShipping,
     } = this.state;
     offset = parseInt(offset);
     const offsetEnd = offset + products.length;
     const currentPage = offset / limit + 1;
     const totalPages = Math.ceil(results / limit);
     const pagesArr = getAdjVals(currentPage, 2, 1, totalPages);
+
     return (
       <div className='container-fluid'>
         <div className='row'>
@@ -97,7 +125,7 @@ class ProductList extends React.Component {
                     <div className='form-row'>
                       <div className='form-check navbar-text'>
                         <input
-                          value={deals}
+                          checked={deals}
                           onChange={() => this.setState({ deals: !deals })}
                           id='products-filter-deals'
                           className='form-check-input'
@@ -105,7 +133,28 @@ class ProductList extends React.Component {
                         <label htmlFor='products-filter-deals' className='form-check-label'>Deals</label>
                       </div>
                     </div>
-                    <div className='form-row'>
+                    {
+                      shippingMethods.map(method => {
+                        const { id, name } = method;
+                        const checked = selectedShipping.includes(id);
+                        return (
+                          <div className='form-row' key={id}>
+                            <div className='form-check navbar-text'>
+                              <input
+                                checked={checked}
+                                onChange={() => this.setShippingMethod(id, !checked)}
+                                id={'products-filter-shipping-method-' + id}
+                                className='form-check-input'
+                                type='checkbox' />
+                              <label htmlFor={'products-filter-shipping-method-' + id} className='form-check-label'>
+                                <span className='text-capitalize'>{name.toLocaleLowerCase()}</span> shipping
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })
+                    }
+                    <div className='form-row mt-4'>
                       <button className='btn btn-primary' type='submit'>Submit</button>
                     </div>
                   </form>
