@@ -231,18 +231,23 @@ app.get('/api/products', (req, res, next) => {
     max = null,
     offset = 0,
     minRating = null,
+    shippingMethods = null,
   } = req.query;
   const err = verifyMultiple(
     [min, false, isPosNum],
     [max, false, isPosNum],
     [offset, false, isPosNum],
     [minRating, false, isPosNumBetweenLengths, 1, 10],
+    [shippingMethods, false]
   );
   if (err) return next(err);
   deals = deals === 'true';
-  if (!search) search = null;
-  if (min) min = parseInt(min) * 100;
-  if (max) max = parseInt(max) * 100;
+  if (typeof shippingMethods === typeof String()) {
+    shippingMethods = shippingMethods
+      .split(',')
+      .map(method => parseInt(method))
+      .filter(method => method != null);
+  }
   db.query(`
     WITH  products_cte          AS (
       SELECT    p.id,
@@ -255,6 +260,11 @@ app.get('/api/products', (req, res, next) => {
                   WHERE     $1 = FALSE
                 ),
                 (
+                  SELECT  ARRAY_AGG(s.shipping_method)
+                  FROM    shipping AS s
+                  WHERE   s.pid = p.id
+                ) AS shipping_methods,
+                (
                   SELECT  AVG(r.rating)
                   FROM    ratings AS r
                   WHERE   r.pid = p.id
@@ -262,22 +272,22 @@ app.get('/api/products', (req, res, next) => {
       FROM      products          AS p
       LEFT JOIN tags              AS t ON t.pid = p.id
       WHERE     (
-                  $1                =     FALSE
-                  OR p.discount     >     0
+                  $1                    =     FALSE
+                  OR p.discount         >     0
                 )
                 AND (
-                  $2::TEXT          IS    NULL
-                  OR p.name         ~*    $2::TEXT
-                  OR p.description  ~*    $2::TEXT
-                  OR t.name         LIKE  $2::TEXT
+                  $2::TEXT              IS    NULL
+                  OR p.name             ~*    $2::TEXT
+                  OR p.description      ~*    $2::TEXT
+                  OR t.name             LIKE  $2::TEXT
                 )
                 AND (
-                  $3::INTEGER       IS    NULL
-                  OR $3::INTEGER    <=    p.price - p.discount
+                  $3::INTEGER           IS    NULL
+                  OR $3::INTEGER * 100  <=    p.price - p.discount
                 )
                 AND (
-                  $4::INTEGER       IS    NULL
-                  OR $4::INTEGER    >=    p.price - p.discount
+                  $4::INTEGER           IS    NULL
+                  OR $4::INTEGER * 100  >=    p.price - p.discount
                 )
       GROUP BY  p.id
     )
@@ -295,9 +305,16 @@ app.get('/api/products', (req, res, next) => {
               $7::INTEGER                     IS      NULL
               OR $7::INTEGER                  <=      avg_rating
             )
+            AND (
+              $8::INTEGER[]                   IS      NULL
+              OR $8::INTEGER[] & (
+                SELECT  ARRAY_AGG(id)
+                FROM    shipping_methods
+              )                               <@      ARRAY_REMOVE(shipping_methods, NULL)
+            )
     LIMIT     $5
     OFFSET    $6;
-  `, [deals, search, min, max, productLimit, offset, minRating])
+  `, [deals, search, min, max, productLimit, offset, minRating, shippingMethods])
     .then(data => res.json(formatKeys(data.rows[0].obj)))
     .catch(err => next({ err }));
 });
