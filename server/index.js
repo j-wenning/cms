@@ -331,7 +331,7 @@ app.get('/api/products', (req, res, next) => {
     .catch(err => next({ err }));
 });
 
-app.put('/api/product/rating', (req, res, next) => {
+app.put('/api/product/rating', async (req, res, next) => {
   const { uid = null } = req.session;
   const { id, rating } = req.body;
   let err = verifyMultiple(
@@ -340,16 +340,27 @@ app.put('/api/product/rating', (req, res, next) => {
   );
   if (uid == null) err = userErr('Unauthorized', 401);
   if (err) return next(err);
-  db.query(`
-    INSERT INTO   ratings (pid, uid, rating)
-    VALUES        ($1, $2, $3)
-    ON CONFLICT
-    ON CONSTRAINT unique_rating
-    DO UPDATE SET rating = $3
-    RETURNING     rating;
-  `, [id, uid, rating])
-    .then(data => res.json(data.rows[0]))
-    .catch(err => next({ err }));
+  try {
+    await db.query(`
+      INSERT INTO   ratings (pid, uid, rating)
+      VALUES        ($1, $2, $3)
+      ON CONFLICT
+      ON CONSTRAINT unique_rating
+      DO UPDATE SET rating = $3
+    `, [id, uid, rating]);
+    const { rows: [ data ] } = await db.query(`
+      SELECT    AVG(rating) AS avg_rating,
+                COUNT(1) AS total_ratings,
+                SUM((
+                  SELECT  rating
+                  WHERE   uid = $2
+                )) AS rating
+      FROM      ratings
+      WHERE     pid = $1
+      GROUP BY  pid;
+    `, [id, uid]);
+    res.json(formatKeys(data));
+  } catch (err) { next({ err }); }
 });
 
 app.get('/api/product', (req, res, next) => {
@@ -395,7 +406,12 @@ app.get('/api/product', (req, res, next) => {
       FROM      ratings AS r
       GROUP BY  pid
     )
-    SELECT    p.*,
+    SELECT    p.name,
+              p.description,
+              p.information,
+              p.price::FLOAT / 100 AS price,
+              p.discount::FLOAT / 100 AS discount,
+              p.qty,
               i.images,
               s.shipping_methods,
               COALESCE(r.rating,        0) AS rating,
@@ -407,13 +423,8 @@ app.get('/api/product', (req, res, next) => {
     LEFT JOIN ratings_Cte   AS r USING(id)
     WHERE     id = $1;
   `, [id, uid])
-    .then(data => {
-      const result = data.rows[0];
-      result.price /= 100;
-      result.discount /= 100;
-      result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10;
-      res.json(result);
-    }).catch(err => next({ err }));
+    .then(data => res.json(formatKeys(data.rows[0])))
+    .catch(err => next({ err }));
 });
 
 app.get('/api/cart/shippingmethods', (req, res, next) => {
