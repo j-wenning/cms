@@ -16,8 +16,11 @@ export default class RatingBar extends React.Component {
         const json = await res.json();
         if (res.ok) return json;
         throw json;
-      }).then(data => this.setState({ rating: data.rating }))
-        .catch(err => console.error(err));
+      }).then(data => {
+        const { rating, avgRating, totalRatings } = data;
+        this.setState({ rating });
+        document.dispatchEvent(new CustomEvent('ratingUpdate', { detail: { rating, avgRating, totalRatings } }));
+      }).catch(err => console.error(err));
     }
   }
 
