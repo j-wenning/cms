@@ -19,6 +19,7 @@ class ProductList extends React.Component {
       deals: false,
       shippingMethods: [],
       selectedShipping: [],
+      minRating: 0,
     };
   }
 
@@ -29,10 +30,16 @@ class ProductList extends React.Component {
     else this.setState({ selectedShipping: this.state.selectedShipping.filter(m => m !== method) });
   }
 
+  setRating(minRating) {
+    if (this.state.minRating === minRating) minRating = 0;
+    this.setState({ minRating });
+  }
+
   formQuery() {
     let [min, max] = this.state.range.map(val => parseInt(val) || 0);
-    const { offset, deals, selectedShipping: shippingMethods } = this.state;
-    return buildQuery({ offset, min, max, deals, shippingMethods }, this.props.location.search);
+    let { offset, deals, selectedShipping: shippingMethods, minRating } = this.state;
+    if (minRating == 0) minRating = null;
+    return buildQuery({ offset, min, max, deals, shippingMethods, minRating }, this.props.location.search);
   }
 
   applyQuery() { this.props.history.push(`/search` + this.formQuery()); }
@@ -60,16 +67,23 @@ class ProductList extends React.Component {
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
 
   componentDidMount() {
-    let { deals, shippingMethods: selectedShipping } = parseQuery(this.props.location.search);
-    this.doFetch();
-    selectedShipping = selectedShipping?.split(',')
-      .map(method => {
-        const parsed = parseInt(method);
-        return !isNaN(parsed) && `${parsed}`.length === method.length
-          ? parsed
-          : null;
-      }).filter(method => method !== null) || [];
-    this.setState({ deals, selectedShipping });
+    let {
+      deals = false,
+      shippingMethods: selectedShipping = '',
+      minRating = 0,
+    } = parseQuery(this.props.location.search);
+    this.setState({
+      deals: deals === 'true',
+      selectedShipping: selectedShipping
+        .split(',')
+        .map(method => {
+          const parsed = parseInt(method);
+          return !isNaN(parsed) && `${parsed}`.length === method.length
+            ? parsed
+            : null;
+        }).filter(method => method !== null) || [],
+      minRating: parseInt(minRating)
+    }, () => this.doFetch());
     fetch('/api/products/shippingmethods')
       .then(async res => {
         const json = await res.json();
@@ -89,13 +103,13 @@ class ProductList extends React.Component {
       deals,
       shippingMethods,
       selectedShipping,
+      minRating,
     } = this.state;
     offset = parseInt(offset);
     const offsetEnd = offset + products.length;
     const currentPage = offset / limit + 1;
     const totalPages = Math.ceil(results / limit);
     const pagesArr = getAdjVals(currentPage, 2, 1, totalPages);
-
     return (
       <div className='container-fluid'>
         <div className='row'>
@@ -120,17 +134,35 @@ class ProductList extends React.Component {
               <ul className='navbar-nav w-100 mr-auto'>
                 <li className='nav-item w-100 form-group'>
                   <form onSubmit={e => this.handleSubmit(e)}>
-                    <h4 className='navbar-text'>Price Scale</h4>
+                    <span className='navbar-text'>Price Scale</span>
                     <PriceScale setRange={range => this.setRange(range)} />
-                    <div className='form-row'>
-                      <div className='form-check navbar-text'>
-                        <input
-                          checked={deals}
-                          onChange={() => this.setState({ deals: !deals })}
-                          id='products-filter-deals'
-                          className='form-check-input'
-                          type='checkbox' />
-                        <label htmlFor='products-filter-deals' className='form-check-label'>Deals</label>
+                    <span className='navbar-text'>Minimum rating</span>
+                    <div className='rating-bar'>
+                      {
+                        [...new Array(10)].map((a, i) => (
+                            <React.Fragment key={i}>
+                              <input
+                                checked={i < minRating}
+                                onChange={() => this.setRating(i + 1)}
+                                className='rating-input'
+                                id={'rating-input-' + i}
+                                type='checkbox' />
+                              <label htmlFor={'rating-input-' + i} className='rating-icon' />
+                            </React.Fragment>
+                        ))
+                      }
+                    </div>
+                    <div className='form-row mt-2'>
+                      <div className='col'>
+                        <div className='form-check navbar-text'>
+                          <input
+                            checked={deals}
+                            onChange={() => this.setState({ deals: !deals })}
+                            id='products-filter-deals'
+                            className='form-check-input'
+                            type='checkbox' />
+                          <label htmlFor='products-filter-deals' className='form-check-label'>Deals</label>
+                        </div>
                       </div>
                     </div>
                     {
@@ -139,23 +171,27 @@ class ProductList extends React.Component {
                         const checked = selectedShipping.includes(id);
                         return (
                           <div className='form-row' key={id}>
-                            <div className='form-check navbar-text'>
-                              <input
-                                checked={checked}
-                                onChange={() => this.setShippingMethod(id, !checked)}
-                                id={'products-filter-shipping-method-' + id}
-                                className='form-check-input'
-                                type='checkbox' />
-                              <label htmlFor={'products-filter-shipping-method-' + id} className='form-check-label'>
-                                <span className='text-capitalize'>{name.toLocaleLowerCase()}</span> shipping
-                              </label>
+                            <div className='col'>
+                              <div className='form-check navbar-text'>
+                                <input
+                                  checked={checked}
+                                  onChange={() => this.setShippingMethod(id, !checked)}
+                                  id={'products-filter-shipping-method-' + id}
+                                  className='form-check-input'
+                                  type='checkbox' />
+                                <label htmlFor={'products-filter-shipping-method-' + id} className='form-check-label'>
+                                  <span className='text-capitalize'>{name.toLocaleLowerCase()}</span> shipping
+                                </label>
+                              </div>
                             </div>
                           </div>
                         );
                       })
                     }
                     <div className='form-row mt-4'>
-                      <button className='btn btn-primary' type='submit'>Submit</button>
+                      <div className='col'>
+                        <button className='btn btn-primary' type='submit'>Submit</button>
+                      </div>
                     </div>
                   </form>
                 </li>
