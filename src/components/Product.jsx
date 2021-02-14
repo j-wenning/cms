@@ -28,9 +28,21 @@ class Product extends React.Component {
       qty: 0,
       buyQty: 1,
     };
+    this.doAvgRatingUpdate = this.doAvgRatingUpdate.bind(this);
   }
 
   setRecommended(recommended) { this.setState({ recommended: recommended.length > 0 }); }
+
+  doAvgRatingUpdate(e) {
+    const {
+      detail: {
+        rating: userRating = null,
+        avgRating: rating = null,
+        totalRatings: ratingCount = null,
+      } = {}
+    } = e || {};
+    this.setState({ userRating, rating, ratingCount });
+  }
 
   doFetch() {
     const id = new URLSearchParams(this.props.location.search).get('id');
@@ -46,10 +58,7 @@ class Product extends React.Component {
       }).then(data => {
         const {
           images, name, description, information, price, discount,
-          rating, qty,
-          'shipping_methods': shippingMethods,
-          'user_rating': userRating,
-          'rating_count': ratingCount,
+          rating, qty, shippingMethods, userRating, ratingCount,
          } = data;
         this.setState({
           name, description, information, price, discount, rating, userRating,
@@ -98,9 +107,14 @@ class Product extends React.Component {
     cb();
   }
 
-  componentDidMount() { this.doFetch(); }
+  componentWillUnmount() { document.removeEventListener('ratingUpdate', this.doAvgRatingUpdate); }
 
   componentDidUpdate() { this.doFetch(); }
+
+  componentDidMount() {
+    this.doFetch();
+    document.addEventListener('ratingUpdate', this.doAvgRatingUpdate);
+  }
 
   render() {
     const {
@@ -236,7 +250,7 @@ class Product extends React.Component {
                   <p>{description}</p>
                   <h4>Rating</h4>
                   <RatingBar className='mb-2' rating={userRating} id={id} />
-                  <p className='text-info'>Average rating: {rating} stars</p>
+                  <p className='text-info'>Average rating: {Math.trunc(rating * 10 / 2) / 10} stars</p>
                   <p className='text-info'>Total ratings: {ratingCount}</p>
                 </div>
               </div>
