@@ -13,6 +13,8 @@ class Header extends React.Component {
       cartQty: 0,
       uid: null,
     };
+    this.fetchCartQty = this.fetchCartQty.bind(this);
+    this.fetchUser = this.fetchUser.bind(this);
   }
 
   handleInput(e) { this.setState({ searchQuery: e.target.value }); }
@@ -49,6 +51,11 @@ class Header extends React.Component {
       }).catch(err => console.error(err));
   }
 
+  componentWillUnmount() {
+    document.removeEventListener('cartQtyUpdate', this.fetchCartQty);
+    document.removeEventListener('userUpdate', this.fetchUser);
+  }
+
   componentDidMount() {
     this.setState({
       navHeight: $(this.nav.current).css('height'),
@@ -61,8 +68,8 @@ class Header extends React.Component {
       if (this.locationKey === location.key) return;
       this.fetchCartQty();
     });
-    document.addEventListener('cartQtyUpdate', () => this.fetchCartQty());
-    document.addEventListener('userUpdate', () => this.fetchUser());
+    document.addEventListener('cartQtyUpdate', this.fetchCartQty);
+    document.addEventListener('userUpdate', this.fetchUser);
   }
 
   render() {
