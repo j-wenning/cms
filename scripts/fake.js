@@ -42,3 +42,27 @@ const generateProduct = async () => {
   } catch (err) { console.error(err); }
   return product;
 };
+
+const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)].map(() => generateProduct()));
+
+const { writeFileSync, readdirSync, unlinkSync } = require('fs');
+
+let {
+  qty,
+} = Object.fromEntries(process.argv.filter(arg => /.=./.test(arg)).map(arg => arg.split('=')));
+
+qty = Number(qty) || parseInt(qty) || 1;
+
+(async () => {
+  const products = await generateProducts(qty);
+  const files = readdirSync(__dirname + '/../public/images');
+  files.forEach(file => {
+    if (!/default\.svg/i.test(file)) unlinkSync(__dirname + '/../public/images/' + file);
+  });
+  products.forEach(product => {
+    product.images.forEach(image => {
+      const { name, blob } = image;
+      writeFileSync(`${__dirname}/../public/images/${name}.jpg`, blob);
+    });
+  });
+})();
