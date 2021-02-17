@@ -1,17 +1,24 @@
-const { commerce, image } = require('faker');
+require('dotenv/config');
 const https = require('https');
+const { commerce, image } = require('faker');
+const { writeFileSync, readdirSync, unlinkSync } = require('fs');
+let {
+  qty,
+} = Object.fromEntries(process.argv.filter(arg => /.=./.test(arg)).map(arg => arg.split('=')));
+qty = Number(qty) || parseInt(qty) || 1;
 const generateProduct = async () => {
   const offset = 2000;
   const product = {
     name: commerce.productName(),
     desc: commerce.productDescription(),
-    price: commerce.price(0, 100, 2, '$'),
+    price: commerce.price(0, 100, 2),
     tags: [...new Array(Math.ceil(Math.random() * 10))].map(() => commerce.productAdjective()),
     qty: Math.ceil(Math.random() * 100),
     ratings: [...new Array(4)].map(() => Math.ceil(Math.random() * 10)),
     images: [...new Array(Math.ceil(Math.random() * 3))],
   };
   try {
+    const discountVal = Math.random();
     Object.assign(product, {
       images: await Promise.all(product.images.map(async (v, i) => {
         const iniUrl = image.unsplash.objects(undefined, undefined, product.name);
@@ -37,7 +44,7 @@ const generateProduct = async () => {
           })
         });
       })),
-      discount: commerce.price(0, parseFloat(product.price.substr(1)) * 0.75, 2, '$'),
+      discount: commerce.price(0, (discountVal > 0.5 ? 0 : 0.75) * product.price, 2),
     });
   } catch (err) { console.error(err); }
   return product;
@@ -45,13 +52,6 @@ const generateProduct = async () => {
 
 const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)].map(() => generateProduct()));
 
-const { writeFileSync, readdirSync, unlinkSync } = require('fs');
-
-let {
-  qty,
-} = Object.fromEntries(process.argv.filter(arg => /.=./.test(arg)).map(arg => arg.split('=')));
-
-qty = Number(qty) || parseInt(qty) || 1;
 
 (async () => {
   const products = await generateProducts(qty);
