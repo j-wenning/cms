@@ -3,22 +3,27 @@ const https = require('https');
 const { commerce, image } = require('faker');
 const { writeFileSync, readdirSync, unlinkSync } = require('fs');
 const { Client } = require('pg');
+const client = new Client({ connectionString: process.env.DB_URL });
 let {
   qty,
 } = Object.fromEntries(process.argv.filter(arg => /.=./.test(arg)).map(arg => arg.split('=')));
 qty = Number(qty) || parseInt(qty) || 1;
+client.connect();
 const generateProduct = async () => {
   const offset = 2000;
+  const { rows: users } = await client.query('SELECT id FROM users;');
+  const { rows: [{ id: stdShippingId }] } = await client.query('SELECT id FROM shipping_methods WHERE name ~ \'standard|std\';');
+  const { rows: shippingMethods } = await client.query('SELECT id FROM shipping_methods;');
   const product = {
     name: commerce.productName(),
     description: commerce.productDescription(),
     price: commerce.price(0, 10000, 0),
     tags: [...new Array(Math.ceil(Math.random() * 10))].map(() => commerce.productAdjective()),
     qty: Math.ceil(Math.random() * 100),
-    ratings: [...new Array(4)].map((a, i) => Math.random() > 0.5 ? { rating: Math.ceil(Math.random() * 10), uid: i + 1 } : null).filter(r => r !== null),
+    ratings: users.map(u => Math.random() > 0.5 ? { uid: u.id, rating: Math.ceil(Math.random() * 10) } : null).filter(r => r !== null),
     images: [...new Array(Math.ceil(Math.random() * 3))],
     discount: 0,
-    shipping: [3, ...[...new Array(2)].map((a, i) => Math.random() > 0.45 ? i + 1 : null).filter(m => m !== null)],
+    shipping: [...new Set([stdShippingId, ...shippingMethods.map(m => m.id).filter(() => Math.random() > 0.45)])],
   };
   try {
     const discountVal = Math.random();
@@ -49,7 +54,7 @@ const generateProduct = async () => {
           })
         });
       })),
-      discount: commerce.price(0, (discountVal > 0.5 ? 0 : 0.75) * product.price, 0),
+      discount: commerce.price(0, (discountVal > 0.4 ? 0 : 0.75) * product.price, 0),
     });
   } catch (err) { console.error(err); }
   return product;
@@ -67,8 +72,6 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
       writeFileSync(`${__dirname}/../public/images/${name}`, blob);
     });
   });
-  const client = new Client({ connectionString: process.env.DB_URL });
-  client.connect();
   try {
     await client.query('DELETE FROM carts;');
     await client.query('DELETE FROM products;');
