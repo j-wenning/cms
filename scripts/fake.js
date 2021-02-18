@@ -80,8 +80,8 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
     await client.query('ALTER SEQUENCE shipping_id_seq RESTART;');
     await client.query('ALTER SEQUENCE orders_id_seq RESTART;');
     await client.query('ALTER SEQUENCE carts_id_seq RESTART;');
-    const a = await client.query(`
-      WITH input_cte AS (
+    await client.query(`
+      WITH  input_cte           AS (
         SELECT      *
         FROM        JSONB_TO_RECORDSET(TO_JSONB($1::JSON[]))
         AS          r (
@@ -96,40 +96,40 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
                       ratings         JSONB[],
                       images          JSONB[]
                     )
-      ), products_cte AS (
+      ),    products_cte        AS (
         INSERT INTO products(name, description, information, price, discount, qty)
         SELECT      name, description, information, price, discount, qty
         FROM        input_cte
         ON CONFLICT DO NOTHING
         RETURNING   *
-      ), input_products_cte AS (
+      ),    input_products_cte  AS (
         SELECT  *
         FROM    input_cte AS i
         JOIN    products_cte AS p ON(
           i.name        = p.name        AND
           i.description = p.description
         )
-      ), tags_cte AS (
+      ),    tags_cte            AS (
         INSERT INTO tags(pid, name)
         SELECT      id AS pid, UNNEST(tags) AS name
         FROM        input_products_cte
         ON CONFLICT DO NOTHING
         RETURNING   1
-      ), ratings_cte AS (
+      ),    ratings_cte         AS (
         INSERT INTO ratings(pid, uid, rating)
         SELECT      i.id, r.*
-        FROM        input_products_cte                    AS i,
+        FROM        input_products_cte  AS i,
                     JSONB_TO_RECORDSET(
                       COALESCE((
                         SELECT  TO_JSONB(ARRAY_AGG(r))
                         FROM    UNNEST(ratings) AS r
                         WHERE   r IS NOT NULL
                       ), '[]'::JSONB)
-                    ) AS r  (uid INTEGER, rating SMALLINT)
+                    )                   AS r  (uid INTEGER, rating SMALLINT)
         INNER JOIN  users AS u ON(r.uid = u.id)
         ON CONFLICT DO NOTHING
         RETURNING   1
-      ), shipping_cte AS (
+      ),    shipping_cte        AS (
         INSERT INTO shipping(pid, shipping_method)
         SELECT      id  AS pid,
                     UNNEST(
@@ -138,7 +138,7 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
         FROM        input_products_cte
         ON CONFLICT DO NOTHING
         RETURNING   1
-      ), images_cte AS (
+      ),    images_cte          AS (
         INSERT INTO images(pid, url, alt, img_order)
         SELECT      ip.id AS pid, i.name AS url, i.alt, i.order AS img_order
         FROM        input_products_cte                    AS ip,
