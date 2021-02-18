@@ -17,7 +17,8 @@ const generateProduct = async () => {
   const product = {
     name: commerce.productName(),
     description: commerce.productDescription(),
-    price: commerce.price(0, 10000, 0),
+    information: '',
+    price: parseInt(commerce.price(0, 10000, 0)),
     tags: [...new Array(Math.ceil(Math.random() * 10))].map(() => commerce.productAdjective()),
     qty: Math.ceil(Math.random() * 100),
     ratings: users.map(u => Math.random() > 0.5 ? { uid: u.id, rating: Math.ceil(Math.random() * 10) } : null).filter(r => r !== null),
@@ -54,7 +55,17 @@ const generateProduct = async () => {
           })
         });
       })),
-      discount: commerce.price(0, (discountVal > 0.4 ? 0 : 0.75) * product.price, 0),
+      information: await new Promise(resolve => {
+        const url = 'https://jaspervdj.be/lorem-markdownum/markdown.txt?no-code=on&no-external-links=on';
+        https.get(url, result => {
+          let data = '';
+          result.on('data', chunk => data += chunk);
+          result.on('end', () => resolve(
+            data.substr(0, 500).match(/(.|\n)+(((?<!\d)\.)|\?|!|\n(?:(?=-|\d|\n|\s)))/g).join('')
+          ));
+        }).on('error', err => { throw new Error(err) });
+      }),
+      discount: discountVal > 0.4 ? 0 : parseInt(commerce.price(0, 0.75 * product.price, 0)),
     });
   } catch (err) { console.error(err); }
   return product;
@@ -72,6 +83,8 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
       writeFileSync(`${__dirname}/../public/images/${name}`, blob);
     });
   });
+  const chunkSize = 50;
+  const chunkedProducts = [...new Array(products.length / chunkSize)].map((a, i) => products.slice(i * chunkSize, i * chunkSize + chunkSize));
   try {
     await client.query('DELETE FROM carts;');
     await client.query('DELETE FROM products;');
@@ -83,74 +96,77 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
     await client.query('ALTER SEQUENCE shipping_id_seq RESTART;');
     await client.query('ALTER SEQUENCE orders_id_seq RESTART;');
     await client.query('ALTER SEQUENCE carts_id_seq RESTART;');
-    await client.query(`
-      WITH  input_cte           AS (
-        SELECT      *
-        FROM        JSONB_TO_RECORDSET(TO_JSONB($1::JSON[]))
-        AS          r (
-                      name            TEXT,
-                      description     TEXT,
-                      information     TEXT,
-                      price           INTEGER,
-                      discount        INTEGER,
-                      qty             INTEGER,
-                      tags            TEXT[],
-                      shipping        INTEGER[],
-                      ratings         JSONB[],
-                      images          JSONB[]
-                    )
-      ),    products_cte        AS (
-        INSERT INTO products(name, description, information, price, discount, qty)
-        SELECT      name, description, information, price, discount, qty
-        FROM        input_cte
-        ON CONFLICT DO NOTHING
-        RETURNING   *
-      ),    input_products_cte  AS (
-        SELECT  *
-        FROM    input_cte AS i
-        JOIN    products_cte AS p ON(
-          i.name        = p.name        AND
-          i.description = p.description
+    for(let i = 0; i < chunkedProducts.length; ++i) {
+      const chunk = chunkedProducts[i];
+      await client.query(`
+        WITH  input_cte           AS (
+          SELECT      *
+          FROM        JSONB_TO_RECORDSET(TO_JSONB($1::JSON[]))
+          AS          r (
+                        name            TEXT,
+                        description     TEXT,
+                        information     TEXT,
+                        price           INTEGER,
+                        discount        INTEGER,
+                        qty             INTEGER,
+                        tags            TEXT[],
+                        shipping        INTEGER[],
+                        ratings         JSONB[],
+                        images          JSONB[]
+                      )
+        ),    products_cte        AS (
+          INSERT INTO products(name, description, information, price, discount, qty)
+          SELECT      name, description, information, price, discount, qty
+          FROM        input_cte
+          ON CONFLICT DO NOTHING
+          RETURNING   *
+        ),    input_products_cte  AS (
+          SELECT  *
+          FROM    input_cte AS i
+          JOIN    products_cte AS p ON(
+            i.name        = p.name        AND
+            i.description = p.description
+          )
+        ),    tags_cte            AS (
+          INSERT INTO tags(pid, name)
+          SELECT      id AS pid, UNNEST(tags) AS name
+          FROM        input_products_cte
+          ON CONFLICT DO NOTHING
+          RETURNING   1
+        ),    ratings_cte         AS (
+          INSERT INTO ratings(pid, uid, rating)
+          SELECT      i.id, r.*
+          FROM        input_products_cte  AS i,
+                      JSONB_TO_RECORDSET(
+                        COALESCE((
+                          SELECT  TO_JSONB(ARRAY_AGG(r))
+                          FROM    UNNEST(ratings) AS r
+                          WHERE   r IS NOT NULL
+                        ), '[]'::JSONB)
+                      )                   AS r  (uid INTEGER, rating SMALLINT)
+          INNER JOIN  users AS u ON(r.uid = u.id)
+          ON CONFLICT DO NOTHING
+          RETURNING   1
+        ),    shipping_cte        AS (
+          INSERT INTO shipping(pid, shipping_method)
+          SELECT      id  AS pid,
+                      UNNEST(
+                        shipping & (SELECT ARRAY_AGG(id) FROM shipping_methods)
+                      )   AS shipping_method
+          FROM        input_products_cte
+          ON CONFLICT DO NOTHING
+          RETURNING   1
+        ),    images_cte          AS (
+          INSERT INTO images(pid, url, alt, img_order)
+          SELECT      ip.id AS pid, i.name AS url, i.alt, i.order AS img_order
+          FROM        input_products_cte                    AS ip,
+                      JSONB_TO_RECORDSET(TO_JSONB(images))  AS i    (name TEXT, alt TEXT, "order" SMALLINT)
+          ON CONFLICT DO NOTHING
+          RETURNING   1
         )
-      ),    tags_cte            AS (
-        INSERT INTO tags(pid, name)
-        SELECT      id AS pid, UNNEST(tags) AS name
-        FROM        input_products_cte
-        ON CONFLICT DO NOTHING
-        RETURNING   1
-      ),    ratings_cte         AS (
-        INSERT INTO ratings(pid, uid, rating)
-        SELECT      i.id, r.*
-        FROM        input_products_cte  AS i,
-                    JSONB_TO_RECORDSET(
-                      COALESCE((
-                        SELECT  TO_JSONB(ARRAY_AGG(r))
-                        FROM    UNNEST(ratings) AS r
-                        WHERE   r IS NOT NULL
-                      ), '[]'::JSONB)
-                    )                   AS r  (uid INTEGER, rating SMALLINT)
-        INNER JOIN  users AS u ON(r.uid = u.id)
-        ON CONFLICT DO NOTHING
-        RETURNING   1
-      ),    shipping_cte        AS (
-        INSERT INTO shipping(pid, shipping_method)
-        SELECT      id  AS pid,
-                    UNNEST(
-                      shipping & (SELECT ARRAY_AGG(id) FROM shipping_methods)
-                    )   AS shipping_method
-        FROM        input_products_cte
-        ON CONFLICT DO NOTHING
-        RETURNING   1
-      ),    images_cte          AS (
-        INSERT INTO images(pid, url, alt, img_order)
-        SELECT      ip.id AS pid, i.name AS url, i.alt, i.order AS img_order
-        FROM        input_products_cte                    AS ip,
-                    JSONB_TO_RECORDSET(TO_JSONB(images))  AS i    (name TEXT, alt TEXT, "order" SMALLINT)
-        ON CONFLICT DO NOTHING
-        RETURNING   1
-      )
-      SELECT  1;
-    `, [products]);
+        SELECT  1;
+      `, [chunk]);
+    }
   } catch (err) { console.error(err); }
   client.end();
 })();
