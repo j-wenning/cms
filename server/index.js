@@ -302,13 +302,17 @@ app.get('/api/products', (req, res, next) => {
                   OR $4::INTEGER * 100  >=    p.price - p.discount
                 )
       GROUP BY  p.id
+      LIMIT     $5
+      OFFSET    $6
     )
     SELECT JSON_BUILD_OBJECT(
       'meta', JSON_BUILD_OBJECT(
         'search', $2,
         'limit',  $5::INTEGER,
         'offset', $6::INTEGER,
-        'total_results', COUNT(*) OVER()
+        'total_results', (
+          SELECT COUNT(*) FROM products
+        )
       ),
       'products', COALESCE(JSON_AGG(p), '[]')
     ) AS obj
@@ -323,9 +327,7 @@ app.get('/api/products', (req, res, next) => {
                 SELECT  ARRAY_AGG(id)
                 FROM    shipping_methods
               )                               <@      ARRAY_REMOVE(shipping_methods, NULL)
-            )
-    LIMIT     $5
-    OFFSET    $6;
+            );
   `, [deals, search, min, max, productLimit, offset, minRating, shippingMethods])
     .then(data => res.json(formatKeys(data.rows[0].obj)))
     .catch(err => next({ err }));
