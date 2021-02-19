@@ -402,7 +402,7 @@ app.get('/api/product', (req, res, next) => {
                 (
                   SELECT  rating
                   FROM    ratings
-                  WHERE   uid = $2
+                  WHERE   pid = $1 AND uid = $2
                 ) AS user_rating,
                 pid AS id
       FROM      ratings AS r
@@ -422,7 +422,7 @@ app.get('/api/product', (req, res, next) => {
     FROM      products      AS p
     LEFT JOIN images_cte    AS i USING(id)
     LEFT JOIN shipping_cte  AS s USING(id)
-    LEFT JOIN ratings_Cte   AS r USING(id)
+    LEFT JOIN ratings_cte   AS r USING(id)
     WHERE     id = $1;
   `, [id, uid])
     .then(data => res.json(formatKeys(data.rows[0])))
@@ -503,7 +503,7 @@ app.put('/api/cart/checkout', async (req, res, next) => {
   if (uid == null) err = userErr('Unauthorized', 401)
   if (err) return next(err);
   try {
-    await db.query('BEGIN;')
+    await db.query('BEGIN;');
     if (single != null) {
       const { rows: [{ id }] } = await db.query(`
         INSERT INTO carts(uid)
