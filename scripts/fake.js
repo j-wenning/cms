@@ -1,16 +1,76 @@
 require('dotenv/config');
 const https = require('https');
-const { commerce, image } = require('faker');
-const { writeFileSync, readdirSync, unlinkSync } = require('fs');
+const { commerce } = require('faker');
+const { writeFileSync, readFileSync, readdirSync, unlinkSync } = require('fs');
 const { Client } = require('pg');
 const client = new Client({ connectionString: process.env.DB_URL });
+let apiData;
 let {
   qty,
 } = Object.fromEntries(process.argv.filter(arg => /.=./.test(arg)).map(arg => arg.split('=')));
+try {
+  apiDate = JSON.parse(readFileSync(__dirname + '/api.json', 'utf8'));
+} catch (err) { console.error('api json file missing or corrupt, creating new object'); }
+apiData = Object.assign({
+  pexels: {
+    hourlyLimit: 200,
+    hourlyReset: null,
+    monthlyLimit: 20000,
+    monthlyReset: null,
+  },
+}, apiData);
 qty = Number(qty) || parseInt(qty) || 1;
 client.connect();
+const generateImages = async (searchString = '', imgCount = 1) => {
+  const { pexels } = apiData;
+  const iniRes = await new Promise((resolve, reject) => {
+    https.get({
+      host: 'api.pexels.com',
+      path: encodeURI(`/v1/search?query=${searchString}&size=small`),
+      headers: { Authorization: process.env.PEXELS_API_KEY },
+    }, response => {
+      let data = '';
+      response.on('data', chunk => data += chunk);
+      response.on('end', () => resolve({
+        headers: response.headers,
+        body: JSON.parse(data),
+      }));
+    }).on('error', err => reject(err));
+  }).catch(err => { throw new Error(err); });
+  const {
+    headers:
+    {
+      'x-ratelimit-remaining': monthlyLimit,
+      'x-ratelimit-reset': monthlyReset,
+    }
+  } = iniRes;
+  --pexels.hourlyLimit;
+  pexels.monthlyLimit = monthlyLimit;
+  pexels.monthlyReset = Number(new Date()) + monthlyReset;
+  const photos = iniRes.body.photos.map(photo => ({
+    name: `${Buffer.from(photo.id + photo.photographer + photo.photographer_id).toString('base64')}.jpg`,
+    alt: 'randomly generated image',
+    url: photo.src.medium,
+    order: Math.ceil(Math.random() * 10),
+  })).filter((_, i) => i < imgCount);
+  return await Promise.all(
+    photos.map(photo => {
+      const { name, alt, url, order } = photo;
+      return new Promise((resolve, reject) => {
+        https.get(url, result => {
+          let data = '';
+          result.setEncoding('binary');
+          result.on('data', chunk => data += chunk);
+          result.on('end', () => resolve({
+            blob: Buffer.from(data, 'binary'),
+            name, alt, order,
+          }));
+        }).on('error', err => reject(err));
+      }).catch(err => { throw new Error(err); });
+    })
+  );
+};
 const generateProduct = async () => {
-  const offset = 2000;
   const { rows: users } = await client.query('SELECT id FROM users;');
   const { rows: [{ id: stdShippingId }] } = await client.query('SELECT id FROM shipping_methods WHERE name ~ \'standard|std\';');
   const { rows: shippingMethods } = await client.query('SELECT id FROM shipping_methods;');
@@ -22,40 +82,15 @@ const generateProduct = async () => {
     tags: [...new Array(Math.ceil(Math.random() * 10))].map(() => commerce.productAdjective()),
     qty: Math.ceil(Math.random() * 100),
     ratings: users.map(u => Math.random() > 0.5 ? { uid: u.id, rating: Math.ceil(Math.random() * 10) } : null).filter(r => r !== null),
-    images: [...new Array(Math.ceil(Math.random() * 3))],
+    images: [],
     discount: 0,
     shipping: [...new Set([stdShippingId, ...shippingMethods.map(m => m.id).filter(() => Math.random() > 0.45)])],
   };
   try {
     const discountVal = Math.random();
     Object.assign(product, {
-      images: await Promise.all(product.images.map(async (v, i) => {
-        const iniUrl = image.unsplash.objects(undefined, undefined, product.name);
-        const srcUrl = await new Promise(resolve => {
-          setTimeout(() => {
-            https.get(iniUrl, result => {
-              result.on('data', () => {});
-              result.on('end', () => resolve(result.headers.location));
-            }).on('error', err => { throw new Error(err) });
-          }, i * offset);
-        });
-        return new Promise(resolve => {
-          https.get(srcUrl, result => {
-            let data = '';
-            result.setEncoding('binary');
-            result.on('data', chunk => data += chunk);
-            result.on('end', () => {
-              resolve({
-                name: result.headers['x-imgix-id'] + '.jpg',
-                alt: 'randomly generated image',
-                blob: Buffer.from(data, 'binary'),
-                order: Math.ceil(Math.random() * 10),
-              });
-            }).on('error', err => { throw new Error(err) });
-          })
-        });
-      })),
-      information: await new Promise(resolve => {
+      images: await generateImages(product.name, Math.ceil(Math.random() * 3)),
+      information: await new Promise((resolve, reject) => {
         const url = 'https://jaspervdj.be/lorem-markdownum/markdown.txt?no-code=on&no-external-links=on';
         https.get(url, result => {
           let data = '';
@@ -63,14 +98,30 @@ const generateProduct = async () => {
           result.on('end', () => resolve(
             data.substr(0, 500).match(/(.|\n)+(((?<!\d)\.)|\?|!|\n(?:(?=-|\d|\n|\s)))/g).join('')
           ));
-        }).on('error', err => { throw new Error(err) });
-      }),
+        }).on('error', err => reject(err));
+      }).catch(err => { throw new Error(err); }),
       discount: discountVal > 0.4 ? 0 : parseInt(commerce.price(0, 0.75 * product.price, 0)),
     });
   } catch (err) { console.error(err); }
   return product;
 };
-const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)].map(() => generateProduct()));
+const generateProducts = async (qty = 1) => {
+  const { pexels } = apiData;
+  const curTime = Number(new Date());
+  if (curTime > pexels.monthlyReset) {
+    pexels.monthlyReset = curTime + 2678400000;
+    pexels.monthlyLimit = 20000;
+  }
+  if (curTime > pexels.hourlyReset) {
+    pexels.hourlyReset = curTime + 3600000;
+    pexels.hourlyLimit = Math.min(200, pexels.monthlyLimit)
+  }
+  if (pexels.hourlyLimit < qty) throw new Error('Quantity will exceed hourly limit of 200 requests, requests remaining:' + pexels.hourlyLimit);
+  if (pexels.monthlyLimit < qty) throw new Error('Quantity will exceed monthly limit of 20,000 requests, requests remaining:' + pexels.monthlyLimit);
+  const products = await Promise.all([...new Array(qty)].map(() => generateProduct())).catch(err => { throw new Error(err); });
+  writeFileSync(__dirname + '/api.json', JSON.stringify(apiData));
+  return products;
+};
 (async () => {
   const products = await generateProducts(qty);
   const files = readdirSync(__dirname + '/../public/images');
@@ -84,7 +135,8 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
     });
   });
   const chunkSize = 50;
-  const chunkedProducts = [...new Array(products.length / chunkSize)].map((a, i) => products.slice(i * chunkSize, i * chunkSize + chunkSize));
+  const chunkedProducts = [...new Array(Math.ceil(products.length / chunkSize))]
+    .map((_, i) => products.slice(i * chunkSize, i * chunkSize + chunkSize));
   try {
     await client.query('DELETE FROM carts;');
     await client.query('DELETE FROM products;');
@@ -169,4 +221,4 @@ const generateProducts = async (qty = 1) => await Promise.all([...new Array(qty)
     }
   } catch (err) { console.error(err); }
   client.end();
-})();
+})().catch(err => { throw new Error(err); });
