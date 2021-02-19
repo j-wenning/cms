@@ -45,8 +45,8 @@ const generateImages = async (searchString = '', imgCount = 1) => {
     }
   } = iniRes;
   --pexels.hourlyLimit;
-  pexels.monthlyLimit = monthlyLimit;
-  pexels.monthlyReset = Number(new Date()) + monthlyReset;
+  pexels.monthlyLimit = parseInt(monthlyLimit);
+  pexels.monthlyReset = Number(new Date()) + parseInt(monthlyReset);
   const photos = iniRes.body.photos.map(photo => ({
     name: `${Buffer.from(photo.id + photo.photographer + photo.photographer_id).toString('base64')}.jpg`,
     alt: 'randomly generated image',
