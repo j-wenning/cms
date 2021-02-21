@@ -4,7 +4,6 @@ import ProductCard from './ProductCard';
 import PriceScale from './PriceScale';
 import { parseQuery, buildQuery } from './URI';
 import { getAdjVals } from './AdjacentValues';
-import { isEqual } from './Object';
 
 class ProductList extends React.Component {
   constructor(props) {
@@ -63,8 +62,6 @@ class ProductList extends React.Component {
         this.setState({ search, offset, limit, totalResults, products });
       }).catch(err => console.error(err));
   }
-
-  componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
 
   componentDidMount() {
     let {
