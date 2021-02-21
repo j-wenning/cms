@@ -29,7 +29,7 @@ const prodImgSelect = (alias = '') => {
       ORDER BY  i.img_order,
                 i.id
       LIMIT     1
-    ) AS img
+    )
   `;
 };
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
@@ -205,7 +205,7 @@ app.get('/api/products/related', (req, res, next) => {
                 p.name,
                 p.price,
                 p.discount,
-                ${prodImgSelect('p')},
+                ${prodImgSelect('p')} AS img,
                 ARRAY_AGG(t.name) AS tags
       FROM      products  AS p
       LEFT JOIN tags      AS t ON (t.pid = p.id)
@@ -215,7 +215,7 @@ app.get('/api/products/related', (req, res, next) => {
             name,
             price,
             discount,
-            ${prodImgSelect()}
+            img
     FROM    products_cte
     WHERE   tags && (
               SELECT tags
@@ -269,7 +269,7 @@ app.get('/api/products', (req, res, next) => {
                 p.name,
                 p.price::FLOAT / 100 AS price,
                 p.discount::FLOAT / 100 AS discount,
-                ${prodImgSelect('p')},
+                ${prodImgSelect('p')} AS img,
                 p.description,
                 ARRAY_AGG(s.shipping_method) AS shipping_methods,
                 AVG(r.rating) AS avg_rating
@@ -623,7 +623,7 @@ app.get('/api/cart', (req, res, next) => {
                 p.name,
                 p.price,
                 p.discount,
-                ${prodImgSelect('p')}
+                ${prodImgSelect('p')} AS img
     FROM        cart_products AS cp
     LEFT JOIN   products      AS p  ON(p.id = pid)
     WHERE       cid = $1;
