@@ -4,6 +4,7 @@ import ProductCard from './ProductCard';
 import PriceScale from './PriceScale';
 import { parseQuery, buildQuery } from './URI';
 import { getAdjVals } from './AdjacentValues';
+import { isEqual } from './Object';
 
 class ProductList extends React.Component {
   constructor(props) {
@@ -63,6 +64,8 @@ class ProductList extends React.Component {
       }).catch(err => console.error(err));
   }
 
+  componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
+
   componentDidMount() {
     let {
       deals = false,
@@ -103,7 +106,7 @@ class ProductList extends React.Component {
       minRating,
     } = this.state;
     offset = parseInt(offset);
-    const offsetEnd = offset + products.length;
+    const offsetEnd = offset + (products?.length || 0);
     const currentPage = offset / limit + 1;
     const totalPages = Math.ceil(results / limit);
     const pagesArr = getAdjVals(currentPage, 2, 1, totalPages);
@@ -199,7 +202,7 @@ class ProductList extends React.Component {
             <div className='container-fluid'>
               <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5'>
                 {
-                  this.state.products.map(product => (
+                  this.state.products?.map(product => (
                     <ProductCard
                       product={product}
                       hideDesc={false}
