@@ -38,7 +38,7 @@ class ProductList extends React.Component {
   formQuery() {
     let [min, max] = this.state.range.map(val => parseInt(val) || 0);
     let { offset, deals, selectedShipping: shippingMethods, minRating } = this.state;
-    if (minRating == 0) minRating = null;
+    if (parseInt(minRating) === 0) minRating = null;
     return buildQuery({ offset, min, max, deals, shippingMethods, minRating }, this.props.location.search);
   }
 
