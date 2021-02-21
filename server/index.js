@@ -271,39 +271,38 @@ app.get('/api/products', (req, res, next) => {
                 p.discount::FLOAT / 100 AS discount,
                 ${prodImgSelect('p')},
                 p.description,
-                (
-                  SELECT  ARRAY_AGG(s.shipping_method)
-                  FROM    shipping AS s
-                  WHERE   s.pid = p.id
-                ) AS shipping_methods,
-                (
-                  SELECT  AVG(r.rating)
-                  FROM    ratings AS r
-                  WHERE   r.pid = p.id
-                ) AS avg_rating
+                ARRAY_AGG(s.shipping_method) AS shipping_methods,
+                AVG(r.rating) AS avg_rating
       FROM      products          AS p
       LEFT JOIN tags              AS t ON t.pid = p.id
+      LEFT JOIN shipping          AS s ON s.pid = p.id
+      LEFT JOIN ratings           AS r ON r.pid = p.id
       WHERE     (
-                  $1                    =     FALSE
-                  OR p.discount         >     0
-                )
-                AND (
-                  $2::TEXT              IS    NULL
-                  OR p.name             ~*    $2::TEXT
-                  OR p.description      ~*    $2::TEXT
-                  OR t.name             LIKE  $2::TEXT
-                )
-                AND (
-                  $3::INTEGER           IS    NULL
-                  OR $3::INTEGER * 100  <=    p.price - p.discount
-                )
-                AND (
-                  $4::INTEGER           IS    NULL
-                  OR $4::INTEGER * 100  >=    p.price - p.discount
+                  $1                              =     FALSE
+                  OR p.discount                   >     0
+                ) AND (
+                  $2::TEXT                        IS    NULL
+                  OR p.name                       ~*    $2::TEXT
+                  OR p.description                ~*    $2::TEXT
+                  OR t.name                       LIKE  $2::TEXT
+                ) AND (
+                  $3::INTEGER                     IS    NULL
+                  OR $3::INTEGER * 100            <=    p.price - p.discount
+                ) AND (
+                  $4::INTEGER                     IS    NULL
+                  OR $4::INTEGER * 100            >=    p.price - p.discount
                 )
       GROUP BY  p.id
-      LIMIT     $5
-      OFFSET    $6
+      HAVING    (
+                  $7::INTEGER                     IS    NULL
+                  OR $7::INTEGER                  <=    AVG(r.rating)
+                ) AND (
+                  ARRAY_LENGTH($8::INTEGER[], 1)  IS    NULL
+                  OR $8::INTEGER[] & (
+                    SELECT  ARRAY_AGG(id)
+                    FROM    shipping_methods
+                  )                               <@    ARRAY_REMOVE(ARRAY_AGG(s.shipping_method), NULL)
+                )
     )
     SELECT JSON_BUILD_OBJECT(
       'meta', JSON_BUILD_OBJECT(
@@ -311,23 +310,20 @@ app.get('/api/products', (req, res, next) => {
         'limit',  $5::INTEGER,
         'offset', $6::INTEGER,
         'total_results', (
-          SELECT COUNT(*) FROM products
+          SELECT  COUNT(1)
+          FROM    products_cte
         )
       ),
-      'products', COALESCE(JSON_AGG(p), '[]')
-    ) AS obj
-    FROM products_cte AS p
-    WHERE   (
-              $7::INTEGER                     IS      NULL
-              OR $7::INTEGER                  <=      avg_rating
-            )
-            AND (
-              ARRAY_LENGTH($8::INTEGER[], 1)  IS      NULL
-              OR $8::INTEGER[] & (
-                SELECT  ARRAY_AGG(id)
-                FROM    shipping_methods
-              )                               <@      ARRAY_REMOVE(shipping_methods, NULL)
-            );
+      'products', (
+        SELECT  JSON_AGG(p)
+        FROM    (
+          SELECT  *
+          FROM    products_cte
+          LIMIT   $5
+          OFFSET  $6
+        ) AS p
+      )
+    ) AS obj;
   `, [deals, search, min, max, productLimit, offset, minRating, shippingMethods])
     .then(data => res.json(formatKeys(data.rows[0].obj)))
     .catch(err => next({ err }));
