@@ -1,6 +1,5 @@
 import React from 'react';
 import ProductCard from './ProductCard';
-import { isEqual } from './Object';
 import { buildQuery } from './URI';
 
 export default class ProductBar extends React.Component {
@@ -55,8 +54,6 @@ export default class ProductBar extends React.Component {
         if (fetchCB) fetchCB(products);
       }).catch(err => console.error(err));
   }
-
-  componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
 
   componentDidMount() { this.doFetch(); }
 
