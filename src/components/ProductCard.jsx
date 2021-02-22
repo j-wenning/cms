@@ -6,8 +6,8 @@ import { buildQuery } from './URI';
 class ProductCard extends React.Component {
   constructor(props) {
     super(props);
-    const { img } = props.product;
-    const { url, alt } = (img || {});
+    const { product: { img } = {} } = props;
+    const { url = '', alt = '' } = img || {};
     this.state = { url, alt };
   }
 
@@ -29,7 +29,7 @@ class ProductCard extends React.Component {
           <div className='mb-2 card-img-top text-center'>
             <Img
               src={this.state.url}
-              alt={this.state.alt}
+              alt=''
               className={this.props?.imgClass} />
           </div>
           <h5 title={name} className='card-title text-truncate'>{name}</h5>

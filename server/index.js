@@ -29,7 +29,7 @@ const prodImgSelect = (alias = '') => {
       ORDER BY  i.img_order,
                 i.id
       LIMIT     1
-    ) AS img
+    )
   `;
 };
 const userErr = (msg = 'Invalid request', code = 400) => ({ code, msg });
@@ -54,6 +54,7 @@ const isNum = val => /[^0-9]/g.test(val.toString()) ? 'number' : null;
 const isPosNum = val => isNum(val) || (val < 0) ? 'positive number' : null;
 const isPosNumOfMinLength = (val, min = 1) => isPosNum(val) || (val.toString().length < min) ? 'positive number of min length ' + min : null;
 const isPosNumOfMaxLength = (val, max = 1) => isPosNum(val) || (val.toString().length > max) ? 'positive number of max length ' + max : null;
+const isPosNumBetweenLengths = (val, min = 1, max = 1) => isPosNumOfMinLength(val, min) || isPosNumOfMaxLength(val, max) ? `positive number between lengths ${min} and ${max}` : null;
 const isPosNumOfLength = (val, length = 1) => isPosNum(val) || (val.toString().length !== length) ? 'positive number of length ' + length : null;
 const isValidRating = val => val < 1 || val > 10 ? 'valid rating' : null;
 const isStr = val => typeof val === typeof String() ? null : 'string';
@@ -91,9 +92,8 @@ app.use(
 
 app.use(express.json());
 
-// temporary middleware for forcing an existing user id
 app.use((req, res, next) => {
-  req.session.uid = 1;
+  if (req.session.uid == null) req.session.uid = 1;
   next();
 });
 
@@ -134,6 +134,45 @@ app.use(async (req, res, next) => {
   } catch (err) { next({ err }); }
 });
 
+app.post('/api/user', (req, res, next) => {
+  let { uid } = req.body;
+  const err = verifyMultiple(
+    [uid, true, isPosNumOfMinLength],
+  );
+  if (err) return next(err);
+  db.query(`
+    SELECT  id AS uid
+    FROM    users
+    WHERE   id = $1;
+  `, [uid])
+    .then(data => {
+      if (data.rows.length === 0) return userErr('Not found', 401);
+      req.session.uid = data.rows[0].uid;
+      res.sendStatus(200);
+    }).catch(err => next({ err }));
+});
+
+app.get('/api/user', (req, res) => res.json({ uid: req.session.uid }));
+
+app.get('/api/users', (req, res, next) => {
+  db.query(`
+    SELECT  id AS uid
+    FROM    users;
+  `).then(data => res.json(data.rows))
+    .catch(err => next({ err }));
+});
+
+app.get('/api/products/shippingmethods', (req, res, next) => {
+  db.query(`
+    SELECT    sm.*
+    FROM      shipping          AS s
+    LEFT JOIN shipping_methods  AS sm ON(sm.id = s.shipping_method)
+    GROUP BY  sm.id
+    ORDER BY  sm.id;
+  `).then(data => res.json(data.rows))
+    .catch(err => next({ err }));
+});
+
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
   db.query(`
@@ -166,7 +205,7 @@ app.get('/api/products/related', (req, res, next) => {
                 p.name,
                 p.price,
                 p.discount,
-                ${prodImgSelect('p')},
+                ${prodImgSelect('p')} AS img,
                 ARRAY_AGG(t.name) AS tags
       FROM      products  AS p
       LEFT JOIN tags      AS t ON (t.pid = p.id)
@@ -176,7 +215,7 @@ app.get('/api/products/related', (req, res, next) => {
             name,
             price,
             discount,
-            ${prodImgSelect()}
+            img
     FROM    products_cte
     WHERE   tags && (
               SELECT tags
@@ -202,71 +241,95 @@ app.get('/api/products', (req, res, next) => {
     min = null,
     max = null,
     offset = 0,
+    minRating = null,
+    shippingMethods = [],
   } = req.query;
   const err = verifyMultiple(
     [min, false, isPosNum],
     [max, false, isPosNum],
     [offset, false, isPosNum],
+    [minRating, false, isPosNumBetweenLengths, 1, 10],
+    [shippingMethods, false]
   );
   if (err) return next(err);
-  deals = !!deals;
-  if (!search) search = null;
-  if (min) min = parseInt(min) * 100;
-  if (max) max = parseInt(max) * 100;
+  deals = deals === 'true';
+  if (typeof shippingMethods === typeof String()) {
+    shippingMethods = shippingMethods
+      .split(',')
+      .map(method => {
+        const parsed = parseInt(method);
+        return !isNaN(parsed) && `${parsed}`.length === method.length
+          ? parsed
+          : null;
+      }).filter(method => method !== null);
+  }
   db.query(`
-    SELECT    p.id,
-              p.name,
-              p.price,
-              p.discount,
-              ${prodImgSelect('p')},
-              (
-                SELECT    p.description
-                WHERE     $1 = FALSE
-              ),
-              COUNT(*) OVER() AS total_results
-    FROM      products  AS p
-    LEFT JOIN tags      AS t ON t.pid = p.id
-    WHERE     (
-                $1                =     FALSE
-                OR p.discount     >     0
-              )
-              AND (
-                $2::TEXT          IS    NULL
-                OR p.name         ~*    $2::TEXT
-                OR p.description  ~*    $2::TEXT
-                OR t.name         LIKE  $2::TEXT
-              )
-              AND (
-                $3::INTEGER       IS    NULL
-                OR $3::INTEGER    <=    p.price - p.discount
-              )
-              AND (
-                $4::INTEGER       IS    NULL
-                OR $4::INTEGER    >=    p.price - p.discount
-              )
-    GROUP BY  p.id
-    LIMIT     $5
-    OFFSET    $6;
-  `, [deals, search, min, max, productLimit, offset])
-    .then(data => {
-      res.json({
-        meta: {
-          search,
-          limit: productLimit,
-          offset,
-          totalResults: data.rows[0]?.total_results
-        },
-        products: data.rows.map(row => {
-          delete row.total_results;
-          row.price /= 100;
-          row.discount /= 100;
-          return row;
-        })
-      });
-    }).catch(err => next({ err }));
+    WITH  products_cte          AS (
+      SELECT    p.id,
+                p.name,
+                p.price::FLOAT / 100 AS price,
+                p.discount::FLOAT / 100 AS discount,
+                ${prodImgSelect('p')} AS img,
+                p.description,
+                ARRAY_AGG(s.shipping_method) AS shipping_methods,
+                AVG(r.rating) AS avg_rating
+      FROM      products          AS p
+      LEFT JOIN tags              AS t ON t.pid = p.id
+      LEFT JOIN shipping          AS s ON s.pid = p.id
+      LEFT JOIN ratings           AS r ON r.pid = p.id
+      WHERE     (
+                  $1                              =     FALSE
+                  OR p.discount                   >     0
+                ) AND (
+                  $2::TEXT                        IS    NULL
+                  OR p.name                       ~*    $2::TEXT
+                  OR p.description                ~*    $2::TEXT
+                  OR t.name                       LIKE  $2::TEXT
+                ) AND (
+                  $3::INTEGER                     IS    NULL
+                  OR $3::INTEGER * 100            <=    p.price - p.discount
+                ) AND (
+                  $4::INTEGER                     IS    NULL
+                  OR $4::INTEGER * 100            >=    p.price - p.discount
+                )
+      GROUP BY  p.id
+      HAVING    (
+                  $7::INTEGER                     IS    NULL
+                  OR $7::INTEGER                  <=    AVG(r.rating)
+                ) AND (
+                  ARRAY_LENGTH($8::INTEGER[], 1)  IS    NULL
+                  OR $8::INTEGER[] & (
+                    SELECT  ARRAY_AGG(id)
+                    FROM    shipping_methods
+                  )                               <@    ARRAY_REMOVE(ARRAY_AGG(s.shipping_method), NULL)
+                )
+    )
+    SELECT JSON_BUILD_OBJECT(
+      'meta', JSON_BUILD_OBJECT(
+        'search', $2,
+        'limit',  $5::INTEGER,
+        'offset', $6::INTEGER,
+        'total_results', (
+          SELECT  COUNT(1)
+          FROM    products_cte
+        )
+      ),
+      'products', (
+        SELECT  JSON_AGG(p)
+        FROM    (
+          SELECT  *
+          FROM    products_cte
+          LIMIT   $5
+          OFFSET  $6
+        ) AS p
+      )
+    ) AS obj;
+  `, [deals, search, min, max, productLimit, offset, minRating, shippingMethods])
+    .then(data => res.json(formatKeys(data.rows[0].obj)))
+    .catch(err => next({ err }));
 });
 
-app.put('/api/product/rating', (req, res, next) => {
+app.put('/api/product/rating', async (req, res, next) => {
   const { uid = null } = req.session;
   const { id, rating } = req.body;
   let err = verifyMultiple(
@@ -275,16 +338,27 @@ app.put('/api/product/rating', (req, res, next) => {
   );
   if (uid == null) err = userErr('Unauthorized', 401);
   if (err) return next(err);
-  db.query(`
-    INSERT INTO   ratings (pid, uid, rating)
-    VALUES        ($1, $2, $3)
-    ON CONFLICT
-    ON CONSTRAINT unique_rating
-    DO UPDATE SET rating = $3
-    RETURNING     rating;
-  `, [id, uid, rating])
-    .then(data => res.json(data.rows[0]))
-    .catch(err => next({ err }));
+  try {
+    await db.query(`
+      INSERT INTO   ratings (pid, uid, rating)
+      VALUES        ($1, $2, $3)
+      ON CONFLICT
+      ON CONSTRAINT unique_rating
+      DO UPDATE SET rating = $3
+    `, [id, uid, rating]);
+    const { rows: [ data ] } = await db.query(`
+      SELECT    AVG(rating) AS avg_rating,
+                COUNT(1) AS total_ratings,
+                SUM((
+                  SELECT  rating
+                  WHERE   uid = $2
+                )) AS rating
+      FROM      ratings
+      WHERE     pid = $1
+      GROUP BY  pid;
+    `, [id, uid]);
+    res.json(formatKeys(data));
+  } catch (err) { next({ err }); }
 });
 
 app.get('/api/product', (req, res, next) => {
@@ -324,13 +398,18 @@ app.get('/api/product', (req, res, next) => {
                 (
                   SELECT  rating
                   FROM    ratings
-                  WHERE   uid = $2
+                  WHERE   pid = $1 AND uid = $2
                 ) AS user_rating,
                 pid AS id
       FROM      ratings AS r
       GROUP BY  pid
     )
-    SELECT    p.*,
+    SELECT    p.name,
+              p.description,
+              p.information,
+              p.price::FLOAT / 100 AS price,
+              p.discount::FLOAT / 100 AS discount,
+              p.qty,
               i.images,
               s.shipping_methods,
               COALESCE(r.rating,        0) AS rating,
@@ -339,16 +418,11 @@ app.get('/api/product', (req, res, next) => {
     FROM      products      AS p
     LEFT JOIN images_cte    AS i USING(id)
     LEFT JOIN shipping_cte  AS s USING(id)
-    LEFT JOIN ratings_Cte   AS r USING(id)
+    LEFT JOIN ratings_cte   AS r USING(id)
     WHERE     id = $1;
   `, [id, uid])
-    .then(data => {
-      const result = data.rows[0];
-      result.price /= 100;
-      result.discount /= 100;
-      result.rating = Math.ceil(parseFloat(result.rating) * 10) / 10;
-      res.json(result);
-    }).catch(err => next({ err }));
+    .then(data => res.json(formatKeys(data.rows[0])))
+    .catch(err => next({ err }));
 });
 
 app.get('/api/cart/shippingmethods', (req, res, next) => {
@@ -425,7 +499,7 @@ app.put('/api/cart/checkout', async (req, res, next) => {
   if (uid == null) err = userErr('Unauthorized', 401)
   if (err) return next(err);
   try {
-    await db.query('BEGIN;')
+    await db.query('BEGIN;');
     if (single != null) {
       const { rows: [{ id }] } = await db.query(`
         INSERT INTO carts(uid)
@@ -549,7 +623,7 @@ app.get('/api/cart', (req, res, next) => {
                 p.name,
                 p.price,
                 p.discount,
-                ${prodImgSelect('p')}
+                ${prodImgSelect('p')} AS img
     FROM        cart_products AS cp
     LEFT JOIN   products      AS p  ON(p.id = pid)
     WHERE       cid = $1;
@@ -666,14 +740,10 @@ app.delete('/api/user/address', (req, res, next) => {
   if (err) return next(err);
   db.query(`
     DELETE FROM addresses
-    WHERE       uid = $1 AND id = $2
-    RETURNING   id;
+    WHERE       uid = $1 AND id = $2;
   `, [uid, id])
-    .then(data => {
-      if (data.rows.length === 0) return next(userErr('Entry not present for current user', 404));
-      const { id } = data.rows[0];
-      res.json({ id });
-    }).catch(err => next({ err }));
+    .then(() => res.sendStatus(204))
+    .catch(err => next({ err }));
 });
 
 app.delete('/api/user/paymentmethod', (req, res, next) => {
@@ -686,14 +756,10 @@ app.delete('/api/user/paymentmethod', (req, res, next) => {
   if (err) return next(err);
   db.query(`
     DELETE FROM payment_methods
-    WHERE       uid = $1 AND id = $2
-    RETURNING   id;
+    WHERE       uid = $1 AND id = $2;
   `, [uid, id])
-    .then(data => {
-      if (data.rows.length === 0) return next(userErr('Entry not present for current user', 404));
-      const { id } = data.rows[0];
-      res.json({ id });
-    }).catch(err => next({ err }));
+    .then(() => res.sendStatus(204))
+    .catch(err => next({ err }));
 });
 
 app.get('/api/orders', (req, res, next) => {

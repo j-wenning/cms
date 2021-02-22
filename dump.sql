@@ -17,6 +17,51 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: intarray; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION intarray; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION intarray IS 'functions, operators, and index support for 1-D arrays of integers';
+
+
+--
+-- Name: delete_user_detail(); Type: FUNCTION; Schema: public; Owner: cms
+--
+
+CREATE FUNCTION public.delete_user_detail() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+f_col TEXT := TG_ARGV[0];
+f_table TEXT := TG_ARGV[1];
+should_delete BOOL;
+BEGIN
+EXECUTE FORMAT(
+'(SELECT NOT EXISTS(SELECT 1 FROM orders WHERE %I = %L));',
+f_col, OLD.id
+) INTO should_delete;
+IF should_delete THEN
+RETURN  OLD;
+ELSE
+EXECUTE FORMAT(
+'UPDATE %I SET uid = NULL WHERE id = %L',
+f_table, OLD.id
+);
+RETURN  NULL;
+END IF;
+END;
+$$;
+
+
+ALTER FUNCTION public.delete_user_detail() OWNER TO cms;
+
+--
 -- Name: fix_cart_product_qty(); Type: FUNCTION; Schema: public; Owner: cms
 --
 
@@ -297,7 +342,7 @@ CREATE TABLE public.payment_methods (
     security_code smallint NOT NULL,
     name character varying(255) NOT NULL,
     expiry date NOT NULL,
-    CONSTRAINT valid_date CHECK (((date_part('month'::text, expiry) >= date_part('month'::text, CURRENT_DATE)) AND (date_part('year'::text, expiry) >= date_part('year'::text, CURRENT_DATE)))),
+    CONSTRAINT valid_date CHECK ((date_trunc('month'::text, (expiry)::timestamp with time zone) >= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))),
     CONSTRAINT valid_name CHECK (((name)::text !~ '([^\w'' ]|\d|_)'::text))
 );
 
@@ -391,7 +436,7 @@ CREATE TABLE public.ratings (
     id integer NOT NULL,
     pid integer,
     uid integer,
-    rating integer NOT NULL,
+    rating smallint NOT NULL,
     CONSTRAINT valid_rating CHECK (((rating > 0) AND (rating < 11)))
 );
 
@@ -642,220 +687,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- Data for Name: addresses; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.addresses (id, uid, country, region, city, address_1, address_2, postal_code) FROM stdin;
-\.
-
-
---
--- Data for Name: cart_products; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.cart_products (id, cid, pid, qty) FROM stdin;
-\.
-
-
---
--- Data for Name: carts; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.carts (id, uid) FROM stdin;
-1	1
-\.
-
-
---
--- Data for Name: images; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.images (id, pid, url, alt, img_order) FROM stdin;
-1	1	imgurl.png	an alt description	1
-2	1	anotherimg.png	please add these	0
-3	3	test.png	aaaaaaaaaaaa	1
-4	3	test2.png		1
-5	3	test3.png		1
-6	6	test2.png		1
-7	2	thisisanimg.png		1
-\.
-
-
---
--- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.orders (id, cid, address, shipping_method, payment_method, delivered, submitted) FROM stdin;
-\.
-
-
---
--- Data for Name: payment_methods; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.payment_methods (id, uid, card_number, security_code, name, expiry) FROM stdin;
-\.
-
-
---
--- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.products (id, name, description, information, price, discount, qty) FROM stdin;
-1	product	a description in the description area	- test markdown\n### that does whatever it likes and stuff\n> 1. bc you **know** how *it* be\n![](/images/test.png)	1999	0	5
-2	discountedproduct	some kind of description	\N	600	100	7
-3	featuredproduct	a fancy description or something thats kinda long and if i add more it truncates if much more is added to it and after some point it just gets too long for the card to display	\N	3000	0	10
-4	featureddiscountedproduct	a short description	\N	4000	1000	3
-5	longnameproduct	MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM	\N	2000	301	6
-6	anotherlongnameproduct	WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW	\N	500	100	1
-7	a free thing	and a description to match	\N	0	0	0
-\.
-
-
---
--- Data for Name: ratings; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.ratings (id, pid, uid, rating) FROM stdin;
-1	1	1	5
-2	1	4	7
-3	1	2	2
-4	1	3	3
-\.
-
-
---
--- Data for Name: shipping; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.shipping (id, pid, shipping_method) FROM stdin;
-1	1	2
-2	1	3
-3	2	1
-4	2	2
-5	2	3
-\.
-
-
---
--- Data for Name: shipping_methods; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.shipping_methods (id, name) FROM stdin;
-1	same-day
-2	express
-3	standard
-\.
-
-
---
--- Data for Name: tags; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.tags (id, pid, name) FROM stdin;
-1	1	tagged
-2	1	tags
-3	2	tags
-\.
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: cms
---
-
-COPY public.users (id) FROM stdin;
-1
-2
-3
-4
-\.
-
-
---
--- Name: addresses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.addresses_id_seq', 1, false);
-
-
---
--- Name: cart_products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.cart_products_id_seq', 1, false);
-
-
---
--- Name: carts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.carts_id_seq', 1, true);
-
-
---
--- Name: images_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.images_id_seq', 7, true);
-
-
---
--- Name: orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.orders_id_seq', 1, false);
-
-
---
--- Name: payment_methods_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.payment_methods_id_seq', 1, false);
-
-
---
--- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.products_id_seq', 7, true);
-
-
---
--- Name: ratings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.ratings_id_seq', 4, true);
-
-
---
--- Name: shipping_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.shipping_id_seq', 5, true);
-
-
---
--- Name: shipping_methods_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.shipping_methods_id_seq', 3, true);
-
-
---
--- Name: tags_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.tags_id_seq', 3, true);
-
-
---
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cms
---
-
-SELECT pg_catalog.setval('public.users_id_seq', 4, true);
-
-
---
 -- Name: addresses addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -960,6 +791,14 @@ ALTER TABLE ONLY public.cart_products
 
 
 --
+-- Name: images unique_image; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.images
+    ADD CONSTRAINT unique_image UNIQUE (url);
+
+
+--
 -- Name: shipping_methods unique_method; Type: CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -980,7 +819,15 @@ ALTER TABLE ONLY public.orders
 --
 
 ALTER TABLE ONLY public.payment_methods
-    ADD CONSTRAINT unique_payment_method UNIQUE (card_number, security_code, name, expiry);
+    ADD CONSTRAINT unique_payment_method UNIQUE (uid, card_number, security_code, name, expiry);
+
+
+--
+-- Name: products unique_product; Type: CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT unique_product UNIQUE (name, description);
 
 
 --
@@ -1023,6 +870,20 @@ CREATE TRIGGER cart_product_qty BEFORE INSERT OR UPDATE ON public.cart_products 
 
 
 --
+-- Name: addresses delete_address; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER delete_address BEFORE DELETE ON public.addresses FOR EACH ROW EXECUTE FUNCTION public.delete_user_detail('address', 'addresses');
+
+
+--
+-- Name: payment_methods delete_payment_method; Type: TRIGGER; Schema: public; Owner: cms
+--
+
+CREATE TRIGGER delete_payment_method BEFORE DELETE ON public.payment_methods FOR EACH ROW EXECUTE FUNCTION public.delete_user_detail('payment_method', 'payment_methods');
+
+
+--
 -- Name: orders prevent_change_submitted; Type: TRIGGER; Schema: public; Owner: cms
 --
 
@@ -1044,6 +905,14 @@ CREATE TRIGGER set_submitted AFTER INSERT ON public.orders FOR EACH ROW EXECUTE 
 
 
 --
+-- Name: cart_products cart_products_cid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.cart_products
+    ADD CONSTRAINT cart_products_cid_fkey FOREIGN KEY (cid) REFERENCES public.carts(id) ON DELETE CASCADE;
+
+
+--
 -- Name: orders fk_address; Type: FK CONSTRAINT; Schema: public; Owner: cms
 --
 
@@ -1052,59 +921,11 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- Name: cart_products fk_cid; Type: FK CONSTRAINT; Schema: public; Owner: cms
---
-
-ALTER TABLE ONLY public.cart_products
-    ADD CONSTRAINT fk_cid FOREIGN KEY (cid) REFERENCES public.carts(id);
-
-
---
--- Name: orders fk_cid; Type: FK CONSTRAINT; Schema: public; Owner: cms
---
-
-ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT fk_cid FOREIGN KEY (cid) REFERENCES public.carts(id);
-
-
---
 -- Name: orders fk_payment_method; Type: FK CONSTRAINT; Schema: public; Owner: cms
 --
 
 ALTER TABLE ONLY public.orders
     ADD CONSTRAINT fk_payment_method FOREIGN KEY (payment_method) REFERENCES public.payment_methods(id);
-
-
---
--- Name: images fk_pid; Type: FK CONSTRAINT; Schema: public; Owner: cms
---
-
-ALTER TABLE ONLY public.images
-    ADD CONSTRAINT fk_pid FOREIGN KEY (pid) REFERENCES public.products(id);
-
-
---
--- Name: tags fk_pid; Type: FK CONSTRAINT; Schema: public; Owner: cms
---
-
-ALTER TABLE ONLY public.tags
-    ADD CONSTRAINT fk_pid FOREIGN KEY (pid) REFERENCES public.products(id);
-
-
---
--- Name: shipping fk_pid; Type: FK CONSTRAINT; Schema: public; Owner: cms
---
-
-ALTER TABLE ONLY public.shipping
-    ADD CONSTRAINT fk_pid FOREIGN KEY (pid) REFERENCES public.products(id);
-
-
---
--- Name: ratings fk_pid; Type: FK CONSTRAINT; Schema: public; Owner: cms
---
-
-ALTER TABLE ONLY public.ratings
-    ADD CONSTRAINT fk_pid FOREIGN KEY (pid) REFERENCES public.products(id);
 
 
 --
@@ -1161,6 +982,46 @@ ALTER TABLE ONLY public.addresses
 
 ALTER TABLE ONLY public.payment_methods
     ADD CONSTRAINT fk_uid FOREIGN KEY (uid) REFERENCES public.users(id);
+
+
+--
+-- Name: images images_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.images
+    ADD CONSTRAINT images_pid_fkey FOREIGN KEY (pid) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: orders orders_cid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_cid_fkey FOREIGN KEY (cid) REFERENCES public.carts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ratings ratings_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.ratings
+    ADD CONSTRAINT ratings_pid_fkey FOREIGN KEY (pid) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: shipping shipping_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.shipping
+    ADD CONSTRAINT shipping_pid_fkey FOREIGN KEY (pid) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tags tags_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: cms
+--
+
+ALTER TABLE ONLY public.tags
+    ADD CONSTRAINT tags_pid_fkey FOREIGN KEY (pid) REFERENCES public.products(id) ON DELETE CASCADE;
 
 
 --

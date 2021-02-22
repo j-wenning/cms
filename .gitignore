@@ -1,3 +1,9 @@
+#db images
+/public/images/*.jpg
+
+#api rate limit checks
+/scripts/api.json
+
 # Logs
 logs
 *.log

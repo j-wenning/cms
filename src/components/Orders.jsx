@@ -17,12 +17,12 @@ class Orders extends React.Component {
 
   componentDidMount() {
     fetch('/api/orders')
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => this.setState({ orders: data }))
-      .catch(err => (async () => console.error(await err))());
+      .catch(err => console.error(err));
   }
 
   render() {

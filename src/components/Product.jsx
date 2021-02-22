@@ -28,9 +28,21 @@ class Product extends React.Component {
       qty: 0,
       buyQty: 1,
     };
+    this.doAvgRatingUpdate = this.doAvgRatingUpdate.bind(this);
   }
 
   setRecommended(recommended) { this.setState({ recommended: recommended.length > 0 }); }
+
+  doAvgRatingUpdate(e) {
+    const {
+      detail: {
+        rating: userRating = null,
+        avgRating: rating = null,
+        totalRatings: ratingCount = null,
+      } = {}
+    } = e || {};
+    this.setState({ userRating, rating, ratingCount });
+  }
 
   doFetch() {
     const id = new URLSearchParams(this.props.location.search).get('id');
@@ -39,17 +51,14 @@ class Product extends React.Component {
     if (this.state.id === id) return;
     this.setState({ id });
     fetch('/api/product' + query)
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
         const {
           images, name, description, information, price, discount,
-          rating, qty,
-          'shipping_methods': shippingMethods,
-          'user_rating': userRating,
-          'rating_count': ratingCount,
+          rating, qty, shippingMethods, userRating, ratingCount,
          } = data;
         this.setState({
           name, description, information, price, discount, rating, userRating,
@@ -58,7 +67,7 @@ class Product extends React.Component {
           shippingMethods: shippingMethods || [],
           shippingMethod: shippingMethods?.[0],
         });
-      }).catch(err => (async () => console.error(await err))());
+      }).catch(err => console.error(err));
   }
 
   doCartFetch() {
@@ -69,7 +78,7 @@ class Product extends React.Component {
       body: JSON.stringify({ id, qty: 1 }),
     }).then(res => { if (!res.ok) throw res.json(); })
       .then(() => document.dispatchEvent(new Event('cartQtyUpdate')))
-      .catch(err => (async () => console.error(await err))());
+      .catch(err => console.error(err));
   }
 
   doBuyNow() {
@@ -98,9 +107,14 @@ class Product extends React.Component {
     cb();
   }
 
-  componentDidMount() { this.doFetch(); }
+  componentWillUnmount() { document.removeEventListener('ratingUpdate', this.doAvgRatingUpdate); }
 
   componentDidUpdate() { this.doFetch(); }
+
+  componentDidMount() {
+    this.doFetch();
+    document.addEventListener('ratingUpdate', this.doAvgRatingUpdate);
+  }
 
   render() {
     const {
@@ -236,7 +250,7 @@ class Product extends React.Component {
                   <p>{description}</p>
                   <h4>Rating</h4>
                   <RatingBar className='mb-2' rating={userRating} id={id} />
-                  <p className='text-info'>Average rating: {rating} stars</p>
+                  <p className='text-info'>Average rating: {Math.trunc(rating * 10 / 2) / 10} stars</p>
                   <p className='text-info'>Total ratings: {ratingCount}</p>
                 </div>
               </div>

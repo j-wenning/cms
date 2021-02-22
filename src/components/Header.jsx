@@ -11,7 +11,10 @@ class Header extends React.Component {
       navHeight: 0,
       searchQuery: '',
       cartQty: 0,
+      uid: null,
     };
+    this.fetchCartQty = this.fetchCartQty.bind(this);
+    this.fetchUser = this.fetchUser.bind(this);
   }
 
   handleInput(e) { this.setState({ searchQuery: e.target.value }); }
@@ -26,14 +29,31 @@ class Header extends React.Component {
 
   fetchCartQty() {
     fetch('/api/cart/qty')
-      .then(res => {
-        const json = res.json();
+      .then(async res => {
+        const json = await res.json();
         if (res.ok) return json;
         throw json;
       }).then(data => {
         const { qty: cartQty } = data;
         this.setState({ cartQty });
-      }).catch(err => (async () => console.error(await err))());
+      }).catch(err => console.error(err));
+  }
+
+  fetchUser() {
+    fetch('/api/user')
+      .then(async res => {
+        const json = await res.json();
+        if (res.ok) return json;
+        throw json;
+      }).then(data => {
+        const { uid } = data;
+        this.setState({ uid });
+      }).catch(err => console.error(err));
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('cartQtyUpdate', this.fetchCartQty);
+    document.removeEventListener('userUpdate', this.fetchUser);
   }
 
   componentDidMount() {
@@ -42,16 +62,18 @@ class Header extends React.Component {
       searchQuery: new URLSearchParams(this.props.location.search).get('s') || ''
     });
     this.fetchCartQty();
+    this.fetchUser();
     this.locationKey = '';
     this.props.history.listen(location => {
       if (this.locationKey === location.key) return;
       this.fetchCartQty();
     });
-    document.addEventListener('cartQtyUpdate', () => this.fetchCartQty());
+    document.addEventListener('cartQtyUpdate', this.fetchCartQty);
+    document.addEventListener('userUpdate', this.fetchUser);
   }
 
   render() {
-    const { navHeight, searchQuery, cartQty } = this.state;
+    const { navHeight, searchQuery, cartQty, uid } = this.state;
     return (
       <header style={{paddingTop: navHeight}}>
         <nav className='navbar navbar-expand-md navbar-light bg-light fixed-top' ref={this.nav}>
@@ -67,8 +89,8 @@ class Header extends React.Component {
             }
           </Link>
           <div className='collapse navbar-collapse' id='navbarSearch'>
-            <ul className='navbar-nav w-100 mt-2 mt-md-0'>
-              <li className='w-md-px-400 justify-self-start'>
+            <ul className='navbar-nav w-100 mt-2 mt-md-0 pb-2 pb-md-0'>
+              <li className='w-md-px-400 justify-self-start mt-3 mt-md-0'>
                 <form onSubmit={e => this.handleSubmit(e)} className='input-group'>
                   <input
                     onChange={e => this.handleInput(e)}
@@ -85,8 +107,44 @@ class Header extends React.Component {
                 </form>
               </li>
               <li className='col' />
-              <li className='mr-0 mt-2 mr-md-2 mt-md-0'>
-                <Link to='/orders' className='btn btn-outline-secondary'>Orders</Link>
+              <hr className='d-md-none dropdown-divider mt-3' />
+              <li className='d-md-none mt-2'>User {uid}</li>
+              <li className='d-md-none mt-2'>
+                <Link
+                  to='/orders'
+                  data-toggle='collapse'
+                  data-target='#navbarSearch'>Orders</Link>
+              </li>
+              <li className='d-md-none mt-2'>
+                <Link
+                  to='/users'
+                  data-toggle='collapse'
+                  data-target='#navbarSearch'>Switch User</Link>
+              </li>
+              <li className='d-none d-md-block mr-2'>
+                <div className='btn-group'>
+                  <button
+                    className='btn btn-outline-secondary rounded'
+                    data-toggle='dropdown'
+                    aria-haspopup='true'
+                    aria-expanded='false'
+                    type='button'>
+                    <img src='/bootstrap/person.svg' alt='Profile'/>
+                  </button>
+                  <div className='dropdown-menu dropdown-menu-right'>
+                    <div className='d-flex justify-content-between dropdown-item-text'>
+                      <span className='text-truncate mw-100'>User {uid}</span>
+                      <img src='/bootstrap/person-fill.svg' alt='' className='ml-2'/>
+                    </div>
+                    <hr className='dropdown-divider' />
+                    <Link
+                      to='/orders'
+                      className='dropdown-item'>Orders</Link>
+                    <Link
+                      to='/users'
+                      className='dropdown-item'>Switch User</Link>
+                  </div>
+                </div>
               </li>
             </ul>
           </div>
