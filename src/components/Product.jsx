@@ -18,7 +18,7 @@ class Product extends React.Component {
       price: 0,
       discount: 0,
       shippingMethods: [],
-      shippingMethod: '',
+      shippingMethod: {},
       modalSrc: null,
       modalAlt: null,
       recommended: true,
@@ -109,7 +109,10 @@ class Product extends React.Component {
 
   componentWillUnmount() { document.removeEventListener('ratingUpdate', this.doAvgRatingUpdate); }
 
-  componentDidUpdate() { this.doFetch(); }
+  componentDidUpdate(prevProps, prevState) {
+    this.doFetch();
+    if (this.state.id !== prevState.id) window.scrollTo(0, 0);
+  }
 
   componentDidMount() {
     this.doFetch();
@@ -256,7 +259,7 @@ class Product extends React.Component {
               {
                 shippingMethods.length > 0
                 ? shippingMethods.map((method, i) => {
-                  const isFirstMethod = i === 0;
+                  const { shippingMethod } = this.state;
                   let { id, name } = method;
                   name = name.toLocaleUpperCase()[0] + name.substr(1).toLocaleLowerCase();
                   return (
@@ -265,7 +268,7 @@ class Product extends React.Component {
                         type='radio'
                         id={'product-order-radio-' + id}
                         onChange={() => this.setState({ shippingMethod: method })}
-                        defaultChecked={isFirstMethod}
+                        checked={shippingMethod === method}
                         className='mr-2'
                         name='product-order-radio' />
                       <span>{name} shipping</span>
