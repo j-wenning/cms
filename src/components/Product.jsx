@@ -329,7 +329,7 @@ class Product extends React.Component {
         </div>
         {
           recommended &&
-          <div className='jumbotron col-12'>
+          <div className='jumbotron col-12 mb-0'>
             <h4 className='mb-5'>Related Products</h4>
             {
               id != null &&
