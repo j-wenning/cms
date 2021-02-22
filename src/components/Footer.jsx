@@ -57,6 +57,7 @@ export default class Footer extends React.Component {
                   <a
                     href='https://github.com/j-wenning/'
                     className='text-reset d-flex align-items-center w-fit'
+                    rel='noreferrer'
                     target='_blank'>
                     <span>GitHub</span>
                     <img src='/bootstrap/github.svg' alt='' className='ml-2 filter-invert' />
@@ -66,6 +67,7 @@ export default class Footer extends React.Component {
                   <a
                     href='https://www.linkedin.com/in/j-wenning/'
                     className='text-reset d-flex align-items-center w-fit'
+                    rel='noreferrer'
                     target='_blank'>
                     <span>LinkedIn</span>
                     <img src='/bootstrap/linkedin.svg' alt='' className='ml-2 filter-invert' />
