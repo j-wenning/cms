@@ -24,7 +24,7 @@ export default class Footer extends React.Component {
   render() {
     const { email, phone } = this.state;
     return (
-      <footer className='py-5 bg-dark container-fluid'>
+      <footer className='mt-4 py-5 bg-dark container-fluid'>
         <div className='row mb-5 mx-2 text-light'>
           <div className='col-12 col-md-6 col-xl-8'>
             <h4>About</h4>
