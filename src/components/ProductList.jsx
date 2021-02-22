@@ -226,7 +226,7 @@ class ProductList extends React.Component {
                   ))
                 }
               </div>
-              <nav aria-label='test' className='my-5'>
+              <nav aria-label='Product navigation' className='mt-5'>
                 <ul className='pagination justify-content-center'>
                   <li className='page-item'>
                     <button
