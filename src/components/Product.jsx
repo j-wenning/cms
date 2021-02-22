@@ -182,85 +182,76 @@ class Product extends React.Component {
         </div>
         <div className='container'>
           <div className='row'>
-            <div className='container col-12 col-xl-9'>
-              <div className='row'>
-                <div
-                  id='product-img-carousel'
-                  className='position-relative carousel slide col-12 col-md-6 mb-5'
-                  data-ride='carousel'>
-                  <ol className='carousel-indicators'>
-                    {
-                      images.map((img, i) => {
-                        const isFirst = i === 0;
-                        return (
-                          <li
-                            data-target='#product-img-carousel'
-                            data-slide-to={i}
-                            key={i}
-                            className={`border border-dark ${isFirst ? 'active' : ''}`} />
-                        )
-                      })
-                    }
-                  </ol>
-                  <div className='carousel-inner border border-dark rounded'>
-                    {
-                      images.map((img, i) => {
-                        let { url, alt } = img;
-                        const isFirst = i === 0;
-                        return (
-                          <button
-                            onClick={() => this.setState({ modalSrc: url, modalAlt: alt })}
-                            data-toggle='modal'
-                            data-target='#product-img-modal'
-                            className={'btn carousel-item text-center ' + (isFirst ? 'active' : '')}
-                            type='button'
-                            key={i}>
-                            <Img
-                              src={url}
-                              alt={alt}
-                              className='product-preview' />
-                          </button>
-                        );
-                      })
-                    }
-                  </div>
-                  {
-                    images.length > 1 &&
-                    <>
-                      <a className='carousel-control-prev pl-3 pl-sm-2 pl-md-0' href='#product-img-carousel' role='button' data-slide='prev'>
-                        <span className='carousel-control-prev-icon' aria-hidden='true' />
-                        <span className='sr-only'>Previous</span>
-                      </a>
-                      <a className='carousel-control-next pr-3 pr-sm-2 pr-md-0' href='#product-img-carousel' role='button' data-slide='next'>
-                        <span className='carousel-control-next-icon' aria-hidden='true' />
-                        <span className='sr-only'>Next</span>
-                      </a>
-                    </>
-                  }
-                </div>
-                <div className='col-12 col-md-6 mb-5'>
-                  <h4>{name}</h4>
-                  <h5>
-                    <span className='text-primary'>${curPrice}&nbsp;</span>
-                    {
-                      discount > 0 &&
-                      <span className='text-secondary'><del>${regPrice}</del> ({percentOff}% off)</span>
-                    }
-                  </h5>
-                  <p>{description}</p>
-                  <h4>Rating</h4>
-                  <RatingBar className='mb-2' rating={userRating} id={id} />
-                  <p className='text-info'>Average rating: {Math.trunc(rating * 10 / 2) / 10} stars</p>
-                  <p className='text-info'>Total ratings: {ratingCount}</p>
-                </div>
+            <div
+              id='product-img-carousel'
+              className='position-relative carousel slide col-12 col-md-8 col-xl-4 mb-5'
+              data-ride='carousel'>
+              <ol className='carousel-indicators'>
+                {
+                  images.map((_, i) => {
+                    const isFirst = i === 0;
+                    return (
+                      <li
+                        data-target='#product-img-carousel'
+                        data-slide-to={i}
+                        key={i}
+                        className={`border border-dark ${isFirst ? 'active' : ''}`} />
+                    )
+                  })
+                }
+              </ol>
+              <div className='carousel-inner border border-dark rounded'>
+                {
+                  images.map((img, i) => {
+                    let { url, alt } = img;
+                    const isFirst = i === 0;
+                    return (
+                      <button
+                        onClick={() => this.setState({ modalSrc: url, modalAlt: alt })}
+                        data-toggle='modal'
+                        data-target='#product-img-modal'
+                        className={'btn carousel-item text-center ' + (isFirst ? 'active' : '')}
+                        type='button'
+                        key={i}>
+                        <Img
+                          src={url}
+                          alt={alt}
+                          className='product-preview' />
+                      </button>
+                    );
+                  })
+                }
               </div>
-              <div className='row'>
-                <div className='col-12'>
-                  <ReactMD className='product-markdown'>{information}</ReactMD>
-                </div>
-              </div>
+              {
+                images.length > 1 &&
+                <>
+                  <a className='carousel-control-prev pl-3 pl-sm-2 pl-md-0' href='#product-img-carousel' role='button' data-slide='prev'>
+                    <span className='carousel-control-prev-icon' aria-hidden='true' />
+                    <span className='sr-only'>Previous</span>
+                  </a>
+                  <a className='carousel-control-next pr-3 pr-sm-2 pr-md-0' href='#product-img-carousel' role='button' data-slide='next'>
+                    <span className='carousel-control-next-icon' aria-hidden='true' />
+                    <span className='sr-only'>Next</span>
+                  </a>
+                </>
+              }
             </div>
-            <div className='col-12 col-xl-3 d-flex flex-column order-first order-xl-0 mb-5'>
+            <div className='col-12 col-xl-4 order-last order-xl-0 mb-5'>
+              <h4>{name}</h4>
+              <h5>
+                <span className='text-primary'>${curPrice}&nbsp;</span>
+                {
+                  discount > 0 &&
+                  <span className='text-secondary'><del>${regPrice}</del> ({percentOff}% off)</span>
+                }
+              </h5>
+              <p>{description}</p>
+              <h4>Rating</h4>
+              <RatingBar className='mb-2' rating={userRating} id={id} />
+              <p className='text-info'>Average rating: {Math.trunc(rating * 10 / 2) / 10} stars</p>
+              <p className='text-info'>Total ratings: {ratingCount}</p>
+            </div>
+            <div className='col-12 col-md-4 col-xl-4 d-flex flex-column order-first order-md-0 mb-5'>
               <h4>Purchase</h4>
               {
                 shippingMethods.length > 0
@@ -325,6 +316,11 @@ class Product extends React.Component {
                     </div>
                   </>
               }
+            </div>
+          </div>
+          <div className='row'>
+            <div className='col-12'>
+              <ReactMD className='product-markdown'>{information}</ReactMD>
             </div>
           </div>
         </div>
