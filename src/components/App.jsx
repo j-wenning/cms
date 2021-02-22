@@ -9,9 +9,11 @@ export default class App extends React.Component {
   render() {
     return (
       <Router>
-        <Header />
-        <RouteSwitch />
-        <Footer />
+        <div className='h-100 d-flex flex-column'>
+          <Header />
+          <RouteSwitch />
+          <Footer />
+        </div>
       </Router>
     );
   }
