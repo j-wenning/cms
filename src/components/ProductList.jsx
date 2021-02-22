@@ -20,7 +20,10 @@ class ProductList extends React.Component {
       shippingMethods: [],
       selectedShipping: [],
       minRating: 0,
+      isXS: false,
+      breakpointSM: 0,
     };
+    this.handleResize = this.handleResize.bind(this);
   }
 
   setRange(range) { this.setState({ range }); }
@@ -46,6 +49,8 @@ class ProductList extends React.Component {
 
   queryOffset(offset) { this.setState({ offset }, () => this.applyQuery()); }
 
+  handleResize(e) { this.setState({ isXS: e.target.innerWidth < this.state.breakpointSM}); }
+
   handleSubmit(e) {
     e.preventDefault();
     this.setState({ offset: 0 }, () => this.applyQuery());
@@ -64,6 +69,8 @@ class ProductList extends React.Component {
       }).catch(err => console.error(err));
   }
 
+  componentWillUnmount() { window.removeEventListener('resize', this.handleResize); }
+
   componentDidUpdate(prevProps) { if (!isEqual(prevProps, this.props)) this.doFetch(); }
 
   componentDidMount() {
@@ -72,6 +79,7 @@ class ProductList extends React.Component {
       shippingMethods: selectedShipping = '',
       minRating = 0,
     } = parseQuery(this.props.location.search);
+    window.addEventListener('resize', this.handleResize);
     this.setState({
       deals: deals === 'true',
       selectedShipping: selectedShipping
@@ -82,8 +90,12 @@ class ProductList extends React.Component {
             ? parsed
             : null;
         }).filter(method => method !== null) || [],
-      minRating: parseInt(minRating)
-    }, () => this.doFetch());
+      minRating: parseInt(minRating),
+      breakpointSM: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-sm')),
+    }, () => {
+      this.doFetch();
+      window.dispatchEvent(new Event('resize'));
+    });
     fetch('/api/products/shippingmethods')
       .then(async res => {
         const json = await res.json();
@@ -104,12 +116,13 @@ class ProductList extends React.Component {
       shippingMethods,
       selectedShipping,
       minRating,
+      isXS,
     } = this.state;
     offset = parseInt(offset);
     const offsetEnd = offset + (products?.length || 0);
     const currentPage = offset / limit + 1;
     const totalPages = Math.ceil(results / limit);
-    const pagesArr = getAdjVals(currentPage, 2, 1, totalPages);
+    const pagesArr = getAdjVals(currentPage, isXS ? 1 : 2, 1, totalPages);
     return (
       <div className='container-fluid'>
         <div className='row'>
