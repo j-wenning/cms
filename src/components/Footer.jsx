@@ -27,11 +27,11 @@ export default class Footer extends React.Component {
       <footer className='footer mt-auto'>
         <div className='container-fluid py-5 bg-dark'>
           <div className='row mb-5 mx-2 text-light'>
-            <div className='col-12 col-md-6 col-xl-8'>
+            <div className='col-12 col-md-8 col-lg-6 col-xl-8'>
               <h4>About</h4>
               <p>This page was created solely for demonstrative purposes, and is not to be used as a legitimate retail webpage.  Please do not enter any sensitive information.  For site problems or business inquiries, utilize the supplied contacts.</p>
             </div>
-            <div className='col-12 col-md-6 col-lg-3 col-xl-2'>
+            <div className='col-12 col-md-4 col-lg-3 col-xl-2'>
               <ul className='list-unstyled'>
                 <li>
                   <h4>Contact Me</h4>
