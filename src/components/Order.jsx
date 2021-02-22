@@ -43,7 +43,7 @@ class Order extends React.Component {
     let subtotal = 0;
     return (
       <main>
-        <div className='container mt-5'>
+        <div className='container mt-5 mb-4'>
           <div className='row'>
             <div className='col'>
               <h3>Order Summary</h3>
