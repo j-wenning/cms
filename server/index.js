@@ -4,7 +4,8 @@ const {
   PORT: port,
   DB_URL: dbUrl,
   SESSION_SECRET: sessionSecret,
-  SESSION_EXPIRY: sessionExpiry
+  SESSION_EXPIRY: sessionExpiry,
+  QTY_REFRESH: qtyRefresh,
 } = process.env;
 const { readFileSync, writeFileSync } = require('fs');
 const express = require('express');
@@ -79,7 +80,7 @@ const startRefreshTimer = () => {
       UPDATE  products
       SET     qty = CEIL(RANDOM() * 100);
     `).then(() => {
-      refresh = Number(new Date()) + 604800000; // 1 week
+      refresh = Number(new Date()) + qtyRefresh; // 1 week
       writeFileSync(__dirname + '/refresh', `${refresh}`);
       startRefreshTimer();
     }).catch(err => console.error(err));
