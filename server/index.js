@@ -6,6 +6,7 @@ const {
   SESSION_SECRET: sessionSecret,
   SESSION_EXPIRY: sessionExpiry
 } = process.env;
+const { readFileSync, writeFileSync } = require('fs');
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
@@ -72,8 +73,29 @@ const formatKeys = obj => {
   }
   return result;
 };
+const startRefreshTimer = () => {
+  setTimeout(() => {
+    db.query(`
+      UPDATE  products
+      SET     qty = CEIL(RANDOM() * 100);
+    `).then(() => {
+      refresh = Number(new Date()) + 604800000; // 1 week
+      writeFileSync(__dirname + '/refresh', `${refresh}`);
+      startRefreshTimer();
+    }).catch(err => console.error(err));
+  }, refresh - Number(new Date()));
+};
+let refresh;
+try {
+  refresh = parseInt(readFileSync(__dirname + '/refresh', 'utf8'));
+} catch (err) {
+  console.error('Refresh file missing or corrupted');
+  refresh = Number(new Date());
+}
 
 db.connect();
+
+startRefreshTimer();
 
 app.use(
   session({

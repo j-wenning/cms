@@ -4,6 +4,9 @@
 #api rate limit checks
 /scripts/api.json
 
+#product refresh time
+/server/refresh
+
 # Logs
 logs
 *.log
