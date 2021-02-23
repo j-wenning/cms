@@ -350,7 +350,12 @@ class Checkout extends React.Component {
             </div>
           </div>
         </div>
-        <div className='container-fluid'>
+        <div className='container-fluid mb-4'>
+          <div className='row'>
+            <div className='col-12 alert alert-danger px-md-5' role='alert'>
+              <strong>This is a demo application!</strong>  Please do not provide any real or sensitive information.
+            </div>
+          </div>
           <div className='row m-md-5'>
             <div className='col-12 col-md-4 col-xl-3 mb-4'>
               <div className='card h-100'>
