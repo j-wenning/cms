@@ -198,20 +198,17 @@ app.get('/api/products/shippingmethods', (req, res, next) => {
 app.get('/api/products/prices', (req, res, next) => {
   const { s: search = null } = req.query;
   db.query(`
-    SELECT    MIN(price - discount),
-              MAX(price - discount)
+    SELECT    FLOOR(MIN(price - discount)::FLOAT / 100) AS min,
+              FLOOR(MAX(price - discount)::FLOAT / 100) AS max
     FROM      products  AS p
     LEFT JOIN tags      AS t ON t.pid = p.id
     WHERE     $1::TEXT          IS    NULL
               OR p.name         ~*    $1::TEXT
               OR p.description  ~*    $1::TEXT
               OR t.name         LIKE  $1::TEXT;
-  `, [search]).then(data => {
-      let { min, max } = data.rows[0];
-      min = Math.floor(min / 100);
-      max = Math.ceil(max / 100);
-      res.json({ min, max });
-    }).catch(err => next({err}));
+  `, [search])
+    .then(data => res.json(data.rows[0]))
+    .catch(err => next({err}));
 });
 
 app.get('/api/products/related', (req, res, next) => {
@@ -222,30 +219,23 @@ app.get('/api/products/related', (req, res, next) => {
   if (err) return next(err);
   id = parseInt(id);
   db.query(`
-    WITH products_cte AS (
-      SELECT    p.id,
-                p.name,
-                p.price,
-                p.discount,
-                ${prodImgSelect('p')} AS img,
-                ARRAY_AGG(t.name) AS tags
-      FROM      products  AS p
-      LEFT JOIN tags      AS t ON (t.pid = p.id)
-      GROUP BY  p.id
-    )
-    SELECT  id,
-            name,
-            price,
-            discount,
-            img
-    FROM    products_cte
-    WHERE   tags && (
-              SELECT tags
-              FROM  products_cte
-              WHERE id = $1
-            )
-            AND id != $1
-    LIMIT   $2;
+    SELECT    p.id,
+              p.name,
+              p.price,
+              p.discount,
+              ${prodImgSelect('p')} AS img,
+              ARRAY_AGG(t.name) AS tags
+    FROM      products  AS p
+    LEFT JOIN tags      AS t ON (t.pid = p.id)
+    GROUP BY  p.id
+    HAVING    p.id != $1
+              AND ARRAY_AGG(t.name) && (
+                SELECT    ARRAY_AGG(name)
+                FROM      tags
+                WHERE     pid = $1
+                GROUP BY  pid
+              )
+    LIMIT     $2;
   `, [id, productLimit])
     .then(data => res.json({
       products: data.rows.map(row => {
@@ -300,30 +290,30 @@ app.get('/api/products', (req, res, next) => {
       LEFT JOIN shipping          AS s ON s.pid = p.id
       LEFT JOIN ratings           AS r ON r.pid = p.id
       WHERE     (
-                  $1                              =     FALSE
-                  OR p.discount                   >     0
+                  $1                                =     FALSE
+                  OR p.discount                     >     0
                 ) AND (
-                  $2::TEXT                        IS    NULL
-                  OR p.name                       ~*    $2::TEXT
-                  OR p.description                ~*    $2::TEXT
-                  OR t.name                       LIKE  $2::TEXT
+                  $2::TEXT                          IS    NULL
+                  OR p.name                         ~*    $2::TEXT
+                  OR p.description                  ~*    $2::TEXT
+                  OR t.name                         LIKE  $2::TEXT
                 ) AND (
-                  $3::INTEGER                     IS    NULL
-                  OR $3::INTEGER * 100            <=    p.price - p.discount
+                  $3::FLOAT                         IS    NULL
+                  OR FLOOR($3::FLOAT) * 100         <=    p.price - p.discount
                 ) AND (
-                  $4::INTEGER                     IS    NULL
-                  OR $4::INTEGER * 100            >=    p.price - p.discount
+                  $4::FLOAT                         IS    NULL
+                  OR CEIL($4::FLOAT + 0.001) * 100  >=    p.price - p.discount
                 )
       GROUP BY  p.id
       HAVING    (
-                  $7::INTEGER                     IS    NULL
-                  OR $7::INTEGER                  <=    AVG(r.rating)
+                  $7::INTEGER                       IS    NULL
+                  OR $7::INTEGER                    <=    AVG(r.rating)
                 ) AND (
-                  ARRAY_LENGTH($8::INTEGER[], 1)  IS    NULL
+                  ARRAY_LENGTH($8::INTEGER[], 1)    IS    NULL
                   OR $8::INTEGER[] & (
                     SELECT  ARRAY_AGG(id)
                     FROM    shipping_methods
-                  )                               <@    ARRAY_REMOVE(ARRAY_AGG(s.shipping_method), NULL)
+                  )                                 <@    ARRAY_REMOVE(ARRAY_AGG(s.shipping_method), NULL)
                 )
     )
     SELECT JSON_BUILD_OBJECT(
