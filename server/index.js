@@ -18,6 +18,7 @@ const redisClient = redis.createClient();
 const app = express();
 const db = new Pool({ connectionString: dbUrl });
 const productLimit = 25;
+const isProduction = nodeEnv === 'production';
 const prodImgSelect = (alias = '') => {
   if (alias) alias += '.';
   return `
@@ -80,7 +81,7 @@ const startRefreshTimer = () => {
       UPDATE  products
       SET     qty = CEIL(RANDOM() * 100);
     `).then(() => {
-      refresh = Number(new Date()) + qtyRefresh; // 1 week
+      refresh = Number(new Date()) + qtyRefresh;
       writeFileSync(__dirname + '/refresh', `${refresh}`);
       startRefreshTimer();
     }).catch(err => console.error(err));
@@ -88,7 +89,7 @@ const startRefreshTimer = () => {
 };
 let refresh;
 try {
-  refresh = parseInt(readFileSync(__dirname + '/refresh', 'utf8'));
+  refresh = parseInt(readFileSync(path.resolve(__dirname, 'refresh'), 'utf8'));
 } catch (err) {
   console.error('Refresh file missing or corrupted');
   refresh = Number(new Date());
@@ -107,7 +108,7 @@ app.use(
     store: new RedisStore({ client: redisClient }),
     cookie: {
       sameSite: true,
-      httpOnly: nodeEnv === 'production',
+      httpOnly: isProduction,
       maxAge: parseInt(sessionExpiry),
     },
   })
@@ -122,7 +123,7 @@ app.use((req, res, next) => {
 
 app.use('/bootstrap', express.static(path.resolve(__dirname, '..', 'node_modules', 'bootstrap-icons', 'icons/')));
 
-app.use(express.static(path.resolve(__dirname, '..', 'public/')));
+app.use(express.static(path.resolve(__dirname, '..', isProduction ? 'build/' : 'public/')));
 
 app.use(async (req, res, next) => {
   const { uid } = req.session;
