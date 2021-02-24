@@ -82,10 +82,12 @@
     "workbox-webpack-plugin": "5.1.4"
   },
   "scripts": {
-    "start": "node scripts/start.js",
-    "build": "node scripts/build.js",
+    "dev": "node scripts/start.js",
+    "build": "GENERATE_SOURCEMAP=false node scripts/build.js",
     "test": "node scripts/test.js",
-    "fake": "node scripts/fake.js qty=150"
+    "start": "NODE_ENV='production' node server/index.js",
+    "fake": "node scripts/fake.js qty=150",
+    "db:import": "bash -c '. .env; psql $DB_URL < dump.sql'"
   },
   "eslintConfig": {
     "extends": [

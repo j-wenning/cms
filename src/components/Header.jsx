@@ -80,7 +80,7 @@ class Header extends React.Component {
           <button className='navbar-toggler' type='button' data-toggle='collapse' data-target='#navbarSearch' aria-controls='navbarSearch' aria-expanded='false' aria-label='Toggle navigation'>
             <span className='navbar-toggler-icon'></span>
           </button>
-          <Link onClick={() => this.resetInput()} to='/' className='navbar-brand mr-0 mr-md-2'>Brand</Link>
+          <Link onClick={() => this.resetInput()} to='/' className='navbar-brand mr-0 mr-md-2'>CMS</Link>
           <Link onClick={() => this.resetInput()} to='/cart' className='btn btn-outline-secondary order-md-last mr-0' title='Cart'>
             <img src='/bootstrap/cart.svg' alt='Cart' />
             {

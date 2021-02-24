@@ -1,70 +1,123 @@
-# Getting Started with Create React App
+# Information
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+CMS is a generically branded Content Management System (CMS), created for demonstrative purposes and uses a combination of technologies and external services.
+
+# Preview
+![desktop preview](preview/desktop.png)
+![tablet preview](preview/tablet.png)
+![mobile preview](preview/mobile.png)
+
+# Getting Started
+
+## System Requirements
+
+- Node.js 14.10.1
+- npm 6.14.8
+- PostgreSQL 12.5
+  - Extensions
+    - PL/pgSQL
+    - intarray
+- Redis 5.0.7
+
+## Additional Prerequisites
+
+- [Pexels API key](https://www.pexels.com/api/new/)
+- Empty database
+
+## Setup
+
+Clone the repository.
+
+```console
+$ git clone https://github.com/j-wenning/cms.git
+```
+
+Install dependencies.
+
+```console
+$ npm install
+```
+
+Copy .env.example to .env and populate empty fields.\
+Feel free to change the other variables if you know what you're doing.
+
+```console
+$ cp .env.example .env
+$ vim .env
+```
+
+```shell
+DEV_PORT=3000
+PORT=3001
+DB_URL=postgres://username:password@host:port/database
+SESSION_SECRET=a1a1a1a1a1a1
+SESSION_EXPIRY=43200000
+QTY_REFRESH=604800000
+PEXELS_API_KEY=a1a1a1a1a1a1a1a1a1
+```
+
+Import database schema.
+
+```console
+$ npm run db:import
+```
+
+Populate the database.
+
+```console
+$ npm run fake
+```
+
+>Remember that this is using your Pexels API credentials, so try    to respect their rate limits of 200 requests per hour, 20,000   per month!\
+Mileage may vary, some products will not have images generated for them for whatever reason, hence the default image fallback.
+
+Build the project - Trust me, it's faster than running the DevServer.
+
+```console
+$ npm run build
+```
+
+Start the server.
+
+```console
+$ npm start
+```
+
+Once started, you can view the application on [http://localhost:3000](http://localhost:3000) (or whichever port you set in `.env`).
 
 ## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
 ### `npm run build`
 
 Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The build is minified and the filenames include the hashes.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### `npm run db:import`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Imports database schema using supplied connection string in `.env`.
 
-### `npm run eject`
+### `npm run fake`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Generates random products for the database using supplied connection string and Pexels API key in `.env`.\
+Utilizes [faker.js](https://www.npmjs.com/package/faker) and the [Pexels API](https://www.pexels.com/api/).
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### `npm start`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Runs the app in production mode using supplied port in `.env`.\
+Be sure to run `build`, `db:import`, and `fake` first.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### `npm run dev`
 
-## Learn More
+Runs [Webpack DevServer](https://webpack.js.org/configuration/dev-server/) and server backend on supplied dev port and port in `.env` respectively.\
+Hot reloads and source maps are enabled.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### `npm test` *
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+\* Supplied by Create React App, may or may not still be functional.
