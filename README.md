@@ -2,6 +2,11 @@
 
 CMS is a generically branded Content Management System (CMS), created for demonstrative purposes and uses a combination of technologies and external services.
 
+# Preview
+![desktop preview](preview/desktop.png)
+![tablet preview](preview/tablet.png)
+![mobile preview](preview/mobile.png)
+
 # Getting Started
 
 ## System Requirements
