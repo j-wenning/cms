@@ -848,6 +848,8 @@ app.get('/api/order', (req, res, next) => {
     }).catch(err => next({ err }));
 });
 
+app.use('/*', express.static(path.resolve(__dirname, '..', isProduction ? 'build/' : 'public/', 'index.html')));
+
 app.use((error, req, res, next) => {
   const {
     err: err = null,
